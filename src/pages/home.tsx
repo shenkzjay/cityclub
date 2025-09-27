@@ -118,7 +118,7 @@ export function HomePage() {
       startTime: "7:30am",
       homeScore: 1,
       awayScore: 2,
-      date: "26 Sept, 2025",
+      date: "21 Sept, 2025",
     },
     {
       homeTeam: "TeamB",
@@ -126,7 +126,7 @@ export function HomePage() {
       startTime: "7:30am",
       homeScore: 0,
       awayScore: 1,
-      date: "26 Sept, 2025",
+      date: "21 Sept, 2025",
     },
     {
       homeTeam: "TeamA",
@@ -134,7 +134,7 @@ export function HomePage() {
       startTime: "7:30am",
       homeScore: null,
       awayScore: null,
-      date: "27 Sept, 2025",
+      date: "28 Sept, 2025",
     },
     {
       homeTeam: "TeamC",
@@ -142,7 +142,7 @@ export function HomePage() {
       startTime: "7:30am",
       homeScore: null,
       awayScore: null,
-      date: "27 Sept, 2025",
+      date: "28 Sept, 2025",
     },
     {
       homeTeam: "TeamA",
@@ -150,7 +150,7 @@ export function HomePage() {
       startTime: "7:30am",
       homeScore: null,
       awayScore: null,
-      date: "28 Sept, 2025",
+      date: "5 Oct, 2025",
     },
     {
       homeTeam: "TeamD",
@@ -158,7 +158,7 @@ export function HomePage() {
       startTime: "7:30am",
       homeScore: null,
       awayScore: null,
-      date: "28 Sept, 2025",
+      date: "5 Oct, 2025",
     },
   ];
 

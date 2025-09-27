@@ -30,9 +30,10 @@ export const CreateTeamsComponent = () => {
 
   const [toggleDropdown, setToggleDropdown] = useState(false);
 
-  const selectedPlayerNames = selectedPlayers.map(
-    (id) => players?.find((player) => player.id === id)?.playerName
-  );
+  const selectedPlayerNames = selectedPlayers.map((id) => {
+    const player = players?.find((player) => player.id === id);
+    return player ? player.playerName : undefined;
+  });
 
   console.log({ teams });
 
@@ -142,16 +143,20 @@ export const CreateTeamsComponent = () => {
                         key={idx}
                         className="cursor-pointer w-full flex flex-row gap-2 items-center even:bg-[#333] px-2 py-1 "
                       >
-                        <input
-                          type="checkbox"
-                          name={player.playerName}
-                          checked={selectedPlayers.includes(player.id)}
-                          id={player.playerName}
-                          onChange={(e) => handleSelectPlayers(e, player.id)}
-                        />
-                        <label htmlFor={player.playerName} className="w-full cursor-pointer">
-                          {player.playerName}
-                        </label>
+                        {player.playerName && player.id ? (
+                          <>
+                            <input
+                              type="checkbox"
+                              name={player.playerName}
+                              checked={selectedPlayers.includes(player.id)}
+                              id={player.playerName}
+                              onChange={(e) => handleSelectPlayers(e, player.id)}
+                            />
+                            <label htmlFor={player.playerName} className="w-full cursor-pointer">
+                              {player.playerName}
+                            </label>
+                          </>
+                        ) : null}
                       </li>
                     ))
                   ) : (

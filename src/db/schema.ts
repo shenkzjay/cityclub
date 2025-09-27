@@ -1,10 +1,10 @@
-import { int, sqliteTable as table, text, unique, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { integer, pgTable as table, text, unique, uniqueIndex, serial } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
 export const usersTable = table(
   "users_table",
   {
-    id: int("id").primaryKey({ autoIncrement: true }),
+    id: serial("id").primaryKey(),
     username: text("username").notNull(),
     email: text("email").notNull().unique(),
     password: text("password").notNull(),
@@ -13,35 +13,35 @@ export const usersTable = table(
 );
 
 export const pointsTable = table("points_table", {
-  id: int().primaryKey({ autoIncrement: true }),
-  gamesPlayed: int("gamesPlayed").notNull().default(0),
-  gamesPoint: int("gamesPoint").notNull().default(0),
-  goalsFor: int("goalFor").notNull().default(0),
-  goalsAgainst: int("goalAgainst").notNull().default(0),
-  goalDifference: int("goalDifference").notNull().default(0),
-  gamesWon: int("gamesWon").notNull().default(0),
-  gamesLost: int("gamesLost").notNull().default(0),
-  gamesDrawn: int("gamesDrawn").notNull().default(0),
-  points: int("points").notNull().default(0),
-  teamId: int("teamId")
+  id: serial("id").primaryKey(),
+  gamesPlayed: integer("gamesPlayed").notNull().default(0),
+  gamesPoint: integer("gamesPoint").notNull().default(0),
+  goalsFor: integer("goalFor").notNull().default(0),
+  goalsAgainst: integer("goalAgainst").notNull().default(0),
+  goalDifference: integer("goalDifference").notNull().default(0),
+  gamesWon: integer("gamesWon").notNull().default(0),
+  gamesLost: integer("gamesLost").notNull().default(0),
+  gamesDrawn: integer("gamesDrawn").notNull().default(0),
+  points: integer("points").notNull().default(0),
+  teamId: integer("teamId")
     .unique()
     .references(() => teamsTable.id, { onDelete: "cascade" })
     .notNull(),
 });
 
 export const matchTable = table("match_table", {
-  id: int("id").primaryKey({ autoIncrement: true }),
-  homeTeamId: int("homeTeamId").references(() => teamsTable.id, { onDelete: "cascade" }),
-  awayTeamId: int("awayTeamId").references(() => teamsTable.id, { onDelete: "cascade" }),
-  homeGoals: int("homeGoals").notNull().default(0),
-  awayGoals: int("awayGoals").notNull().default(0),
+  id: serial("id").primaryKey(),
+  homeTeamId: integer("homeTeamId").references(() => teamsTable.id, { onDelete: "cascade" }),
+  awayTeamId: integer("awayTeamId").references(() => teamsTable.id, { onDelete: "cascade" }),
+  homeGoals: integer("homeGoals").notNull().default(0),
+  awayGoals: integer("awayGoals").notNull().default(0),
   matchDate: text("matchDate").notNull(),
 });
 
 export const teamsTable = table(
   "teams_table",
   {
-    id: int("id").primaryKey({ autoIncrement: true }),
+    id: serial("id").primaryKey(),
     teamName: text("teamName").notNull(),
     color: text("color").notNull(),
     description: text("description").notNull(),
@@ -52,13 +52,13 @@ export const teamsTable = table(
 export const playersTable = table(
   "players_table",
   {
-    id: int("id").primaryKey({ autoIncrement: true }),
+    id: serial("id").primaryKey(),
     playerName: text("playerName").notNull(),
-    goals: int("goals").notNull().default(0),
-    assists: int("assists").notNull().default(0),
-    yellowCard: int("yellowCard").notNull().default(0),
-    redCard: int("redCard").notNull().default(0),
-    teamId: int("teamId").references(() => teamsTable.id, { onDelete: "cascade" }),
+    goals: integer("goals").notNull().default(0),
+    assists: integer("assists").notNull().default(0),
+    yellowCard: integer("yellowCard").notNull().default(0),
+    redCard: integer("redCard").notNull().default(0),
+    teamId: integer("teamId").references(() => teamsTable.id, { onDelete: "cascade" }),
   },
   (table) => [unique("unique_player_name").on(table.playerName)]
 );

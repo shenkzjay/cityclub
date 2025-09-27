@@ -1,47 +1,12 @@
 {
   "version": "7",
-  "dialect": "sqlite",
+  "dialect": "postgresql",
   "entries": [
     {
       "idx": 0,
-      "version": "6",
-      "when": 1758537139496,
-      "tag": "0000_regular_wild_child",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1758664785577,
-      "tag": "0001_parallel_marrow",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1758726200727,
-      "tag": "0002_bent_blacklash",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "6",
-      "when": 1758736687956,
-      "tag": "0003_pink_barracuda",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "6",
-      "when": 1758814591822,
-      "tag": "0004_funny_red_wolf",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "6",
-      "when": 1758882167239,
-      "tag": "0005_faithful_scarlet_witch",
+      "version": "7",
+      "when": 1758997890694,
+      "tag": "0000_sudden_justice",
       "breakpoints": true
     }
   ]

@@ -1,7 +1,7 @@
 import { router, publicProcedure } from "./trpc";
 import { createHTTPServer } from "@trpc/server/adapters/standalone";
 import cors from "cors";
-import { db } from "../db";
+import { db } from "../db/db";
 import { matchTable, playersTable, teamsTable, pointsTable, usersTable } from "../db/schema";
 import { eq, isNull } from "drizzle-orm";
 import z from "zod";
