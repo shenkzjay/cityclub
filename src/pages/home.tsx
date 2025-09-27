@@ -11,11 +11,6 @@ interface Match {
   date: string;
 }
 
-interface NewsItem {
-  title: string;
-  subtitle: string;
-}
-
 const TEAM_COLORS = {
   TeamA: { bg: "bg-red-600", text: "text-white" },
   TeamB: { bg: "bg-blue-600", text: "text-white" },
@@ -63,7 +58,7 @@ export function HomePage() {
   const [activeTab, setActiveTab] = useState<"team" | "players">("team");
 
   const { data: teams = [] } = trpc.getTeams.useQuery();
-  const { data: players, isLoading, isError } = trpc.getPlayers.useQuery();
+  const { data: players } = trpc.getPlayers.useQuery();
 
   //pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -105,16 +100,16 @@ export function HomePage() {
     });
   }, [teams]);
 
-  const getTeamColor = (teamId: number) => {
-    const team = teams?.find((team) => team.id === teamId);
-    return team ? team.color : "gray";
-  };
+  // const getTeamColor = (teamId: number) => {
+  //   const team = teams?.find((team) => team.id === teamId);
+  //   return team ? team.color : "gray";
+  // };
 
-  const newsTitles = Object.entries(newsModules).map(([path, content]) => {
-    const title = extractTitleFromMarkdown(content as string);
+  // const newsTitles = Object.entries(newsModules).map(([path, content]) => {
+  //   const title = extractTitleFromMarkdown(content as string);
 
-    return { title, path };
-  });
+  //   return { title, path };
+  // });
 
   const matchFixtures = [
     {
