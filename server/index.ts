@@ -1,8 +1,8 @@
 import { router, publicProcedure } from "./trpc";
 import { createHTTPServer } from "@trpc/server/adapters/standalone";
 import cors from "cors";
-import { db } from "../db/db";
-import { matchTable, playersTable, teamsTable, pointsTable, usersTable } from "../db/schema";
+import { db } from "../src/db/db";
+import { matchTable, playersTable, teamsTable, pointsTable, usersTable } from "../src/db/schema";
 import { eq, isNull } from "drizzle-orm";
 import z from "zod";
 import "dotenv/config";
@@ -267,16 +267,25 @@ const appRouter = router({
 
 export type AppRouter = typeof appRouter;
 
-const server = createHTTPServer({
-  router: appRouter,
-  middleware: cors({
-    methods: ["GET", "POST", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    origin: ["http://localhost:5173", "http://localhost:5174"],
-    credentials: true,
-  }),
-});
+const isProduction = process.env.NODE_ENV === "production";
 
-server.listen(3005, () => {
-  console.log("Listening on port 3005");
-});
+if (isProduction) {
+  // In production, we don't run the standalone server
+  // Vercel handles this via serverless functions
+  throw new Error("This server should not be used in production");
+} else {
+  // Development only
+  const server = createHTTPServer({
+    router: appRouter,
+    middleware: cors({
+      methods: ["GET", "POST", "OPTIONS"],
+      allowedHeaders: ["Content-Type", "Authorization"],
+      origin: ["http://localhost:5173", "http://localhost:5174"],
+      credentials: true,
+    }),
+  });
+
+  server.listen(3005, () => {
+    console.log("Listening on port 3005");
+  });
+}

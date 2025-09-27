@@ -1,5 +1,5 @@
 import { AdminLayout } from "../layout";
-import { trpc } from "../../client/trpc";
+import { trpc } from "../../../client/trpc";
 import { useState } from "react";
 
 export const CreatePlayersComponent = () => {

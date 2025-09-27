@@ -1,6 +1,6 @@
 // src/components/TeamPage.tsx
 import { useParams, Link } from "react-router";
-import { trpc } from "../client/trpc";
+import { trpc } from "../../client/trpc";
 
 export default function TeamPage() {
   const { teamName: encodedTeamName } = useParams<{ teamName: string }>();

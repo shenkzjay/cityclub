@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { trpc } from "../../client/trpc";
+import { trpc } from "../../../client/trpc";
 import { AdminLayout } from "../layout";
 
 export const CreateTeamsComponent = () => {
