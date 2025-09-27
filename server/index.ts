@@ -9,13 +9,13 @@ import "dotenv/config";
 
 export const appRouter = router({
   getUsers: publicProcedure.query(async () => {
-    const users = await db.select().from(usersTable);
+    const users = await db.get().select().from(usersTable);
 
     return users;
   }),
 
   getUnassignedPlayers: publicProcedure.query(async () => {
-    return await db.select().from(playersTable).where(isNull(playersTable.teamId)); // ← only players without a team
+    return await db.get().select().from(playersTable).where(isNull(playersTable.teamId)); // ← only players without a team
   }),
 
   playerCreate: publicProcedure
@@ -32,7 +32,7 @@ export const appRouter = router({
     .mutation(async (opts) => {
       const { input } = opts;
 
-      const existingPlayer = await db.query.playersTable.findFirst({
+      const existingPlayer = await db.get().query.playersTable.findFirst({
         where: eq(playersTable.playerName, input.playerName.trim()),
       });
 
@@ -40,13 +40,13 @@ export const appRouter = router({
         throw new Error("The player with this name already exists.");
       }
 
-      const [newPlayer] = await db.insert(playersTable).values(input).returning();
+      const [newPlayer] = await db.get().insert(playersTable).values(input).returning();
 
       return newPlayer;
     }),
 
   getPlayers: publicProcedure.query(async () => {
-    const players = await db.query.playersTable.findMany({});
+    const players = await db.get().query.playersTable.findMany({});
 
     return players;
   }),
@@ -66,7 +66,7 @@ export const appRouter = router({
 
       console.log(input);
 
-      const existingTeam = await db.query.teamsTable.findFirst({
+      const existingTeam = await db.get().query.teamsTable.findFirst({
         where: eq(teamsTable.teamName, input.teamName.trim()),
       });
 
@@ -75,6 +75,7 @@ export const appRouter = router({
       }
 
       const [newTeam] = await db
+        .get()
         .insert(teamsTable)
         .values({
           ...teamData,
@@ -86,7 +87,7 @@ export const appRouter = router({
         throw new Error("Failed to create team");
       }
 
-      await db.insert(pointsTable).values({
+      await db.get().insert(pointsTable).values({
         teamId: newTeam.id,
       });
 
@@ -94,6 +95,7 @@ export const appRouter = router({
       if (playerIds.length > 0) {
         for (const playerId of playerIds) {
           await db
+            .get()
             .update(playersTable)
             .set({ teamId: newTeam.id })
             .where(eq(playersTable.id, playerId));
@@ -104,7 +106,7 @@ export const appRouter = router({
     }),
 
   getTeams: publicProcedure.query(async () => {
-    const teams = await db.query.teamsTable.findMany({
+    const teams = await db.get().query.teamsTable.findMany({
       with: {
         players: true,
         score: true,
@@ -128,7 +130,7 @@ export const appRouter = router({
     .mutation(async ({ input }) => {
       const { id, playerName, goals, assists, yellowCard, redCard } = input;
 
-      const existingPlayer = await db.query.playersTable.findFirst({
+      const existingPlayer = await db.get().query.playersTable.findFirst({
         where: eq(playersTable.id, id),
       });
 
@@ -137,6 +139,7 @@ export const appRouter = router({
       }
 
       await db
+        .get()
         .update(playersTable)
         .set({
           playerName,
@@ -167,22 +170,26 @@ export const appRouter = router({
 
       // Update team names
       await db
+        .get()
         .update(teamsTable)
         .set({ teamName: homeTeamName })
         .where(eq(teamsTable.id, homeTeamId));
 
       await db
+        .get()
         .update(teamsTable)
         .set({ teamName: awayTeamName })
         .where(eq(teamsTable.id, awayTeamId));
 
       // Update team scores
       await db
+        .get()
         .update(pointsTable)
         .set({ goalsFor: homeTeamScore })
         .where(eq(pointsTable.teamId, homeTeamId));
 
       await db
+        .get()
         .update(pointsTable)
         .set({ goalsFor: awayTeamScore })
         .where(eq(pointsTable.teamId, awayTeamId));
@@ -204,15 +211,15 @@ export const appRouter = router({
     .mutation(async ({ input }) => {
       const { homeTeamId, awayTeamId, homeGoals, awayGoals, matchDate } = input;
       const [homeTeam, awayTeam] = await Promise.all([
-        db.query.teamsTable.findFirst({ where: eq(teamsTable.id, homeTeamId) }),
-        db.query.teamsTable.findFirst({ where: eq(teamsTable.id, awayTeamId) }),
+        db.get().query.teamsTable.findFirst({ where: eq(teamsTable.id, homeTeamId) }),
+        db.get().query.teamsTable.findFirst({ where: eq(teamsTable.id, awayTeamId) }),
       ]);
       if (!homeTeam || !awayTeam) {
         throw new Error("Team not found");
       }
 
       //record the match
-      await db.insert(matchTable).values({
+      await db.get().insert(matchTable).values({
         homeTeamId,
         awayTeamId,
         homeGoals,
@@ -221,8 +228,8 @@ export const appRouter = router({
       });
 
       const [homeStats, awayStats] = await Promise.all([
-        db.query.pointsTable.findFirst({ where: eq(pointsTable.teamId, homeTeamId) }),
-        db.query.pointsTable.findFirst({ where: eq(pointsTable.teamId, awayTeamId) }),
+        db.get().query.pointsTable.findFirst({ where: eq(pointsTable.teamId, homeTeamId) }),
+        db.get().query.pointsTable.findFirst({ where: eq(pointsTable.teamId, awayTeamId) }),
       ]);
 
       if (!homeStats || !awayStats) {
@@ -259,8 +266,8 @@ export const appRouter = router({
 
       // 4. Persist updates
       await Promise.all([
-        db.update(pointsTable).set(updatedHome).where(eq(pointsTable.teamId, homeTeamId)),
-        db.update(pointsTable).set(updatedAway).where(eq(pointsTable.teamId, awayTeamId)),
+        db.get().update(pointsTable).set(updatedHome).where(eq(pointsTable.teamId, homeTeamId)),
+        db.get().update(pointsTable).set(updatedAway).where(eq(pointsTable.teamId, awayTeamId)),
       ]);
     }),
 });

@@ -1,6 +1,6 @@
 import { createNextApiHandler } from "@trpc/server/adapters/next";
-import { appRouter } from "../../server";
-import { createContext } from "../../server/trpc";
+import { appRouter } from "../../server/index"; // Corrected path
+import { createContext } from "../../server/trpc"; // Corrected path
 import cors from "cors";
 
 const handler = createNextApiHandler({
