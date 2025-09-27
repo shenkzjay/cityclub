@@ -7,7 +7,7 @@ import { eq, isNull } from "drizzle-orm";
 import z from "zod";
 import "dotenv/config";
 
-const appRouter = router({
+export const appRouter = router({
   getUsers: publicProcedure.query(async () => {
     const users = await db.select().from(usersTable);
 

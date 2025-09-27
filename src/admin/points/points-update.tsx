@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { AdminLayout } from "../layout";
-import { trpc } from "../../../client/trpc";
+import { trpc } from "../../client/trpc";
 
 export default function PointsUpdate() {
   const [isEditing, setIsEditing] = useState(false);

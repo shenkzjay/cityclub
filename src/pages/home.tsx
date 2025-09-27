@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { trpc } from "../../client/trpc";
+import { trpc } from "../client/trpc";
 import { Link } from "react-router";
 
 interface Match {
