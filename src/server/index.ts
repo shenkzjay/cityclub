@@ -3,7 +3,7 @@ import { createHTTPServer } from "@trpc/server/adapters/standalone";
 import cors from "cors";
 import { db } from "../db";
 import { matchTable, playersTable, teamsTable, pointsTable, usersTable } from "../db/schema";
-import { eq, and, isNull } from "drizzle-orm";
+import { eq, isNull } from "drizzle-orm";
 import z from "zod";
 import "dotenv/config";
 

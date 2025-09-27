@@ -18,15 +18,11 @@ export const CreateTeamsComponent = () => {
     },
   });
 
-  const { data: teams, isLoading, isError } = trpc.getTeams.useQuery();
+  const { data: teams } = trpc.getTeams.useQuery();
 
-  const {
-    data: unassignedPlayers,
-    isLoading: unassignedPlayersLoading,
-    isError: unassignedPlayersError,
-  } = trpc.getUnassignedPlayers.useQuery();
+  const { data: unassignedPlayers } = trpc.getUnassignedPlayers.useQuery();
 
-  const { data: players, isLoading: loading, isError: error } = trpc.getPlayers.useQuery();
+  const { data: players } = trpc.getPlayers.useQuery();
 
   const [selectedPlayers, setSelectedPlayers] = useState<number[]>([]);
 

@@ -17,7 +17,7 @@ export const CreatePlayersComponent = () => {
     },
   });
 
-  const { data: players, isLoading, isError } = trpc.getPlayers.useQuery();
+  const { data: players } = trpc.getPlayers.useQuery();
 
   //pagination frontend
   const [currentPage, setCurrentPage] = useState(1);
