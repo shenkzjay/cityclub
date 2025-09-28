@@ -1,6 +1,6 @@
 import { createNextApiHandler } from "@trpc/server/adapters/next";
-import { appRouter } from "../../server/index"; // Corrected path
-import { createContext } from "../../server/trpc"; // Corrected path
+import { appRouter } from "../../server/index";
+import { createContext } from "../../server/trpc";
 import cors from "cors";
 
 const handler = createNextApiHandler({
@@ -20,7 +20,7 @@ const corsMiddleware = cors({
 export default async function trpcApiHandler(req: any, res: any) {
   // Apply CORS middleware
   await new Promise((resolve, reject) => {
-    corsMiddleware(req, res, (err: any) => {
+    corsMiddleware(req, res, (err) => {
       if (err) {
         return reject(err);
       }

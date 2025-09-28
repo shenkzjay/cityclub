@@ -2,7 +2,7 @@ import { router, publicProcedure } from "./trpc";
 import { createHTTPServer } from "@trpc/server/adapters/standalone";
 import cors from "cors";
 import { db } from "../src/db/db";
-import { matchTable, playersTable, teamsTable, pointsTable, usersTable } from "../src/db/schema";
+import { matchTable, playersTable, teamsTable, pointsTable, usersTable } from "../src/db/schema.ts";
 import { eq, isNull } from "drizzle-orm";
 import z from "zod";
 import "dotenv/config";
