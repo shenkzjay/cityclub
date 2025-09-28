@@ -1,33 +1,36 @@
-import { createNextApiHandler } from "@trpc/server/adapters/next";
-import { appRouter } from "../../server/index";
-import { createContext } from "../../server/trpc";
-import cors from "cors";
+// import { createNextApiHandler } from "@trpc/server/adapters/next";
+// import { createVercelHandler } from "@trpc/server/adapters/vercel"
+// import { appRouter } from "../../server/index";
+// import { createContext } from "../../server/trpc";
+// import cors from "cors";
 
-const handler = createNextApiHandler({
-  router: appRouter,
-  createContext,
-});
+// const handler = createVercelHandler({
+//   router: appRouter,
+//   createContext,
+// });
+import { appRouter } from "../../server/index.js";
+import { createContext } from "../../server/trpc.js";
+import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 
-const corsMiddleware = cors({
-  methods: ["GET", "POST", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  origin: process.env.TRPC_CORS_ORIGIN
-    ? process.env.TRPC_CORS_ORIGIN.split(",")
-    : ["http://localhost:5173", "http://localhost:5174"],
-  credentials: true,
-});
+export const config = {
+  runtime: "edge", // optional: use edge runtime
+};
 
-export default async function trpcApiHandler(req: any, res: any) {
-  // Apply CORS middleware
-  await new Promise((resolve, reject) => {
-    corsMiddleware(req, res, (err) => {
-      if (err) {
-        return reject(err);
-      }
-      resolve(null);
-    });
+// const corsMiddleware = cors({
+//   methods: ["GET", "POST", "OPTIONS"],
+//   allowedHeaders: ["Content-Type", "Authorization"],
+//   origin: process.env.TRPC_CORS_ORIGIN
+//     ? process.env.TRPC_CORS_ORIGIN.split(",")
+//     : ["http://localhost:5173", "http://localhost:5174"],
+//   credentials: true,
+// });
+
+export default async function handler(request: Request): Promise<Response> {
+  // Handle tRPC requests
+  return fetchRequestHandler({
+    endpoint: "/api/trpc",
+    req: request,
+    router: appRouter,
+    createContext,
   });
-
-  // Handle tRPC request
-  return handler(req, res);
 }
