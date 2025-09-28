@@ -5,7 +5,7 @@ import { db } from "../src/db/db";
 import { matchTable, playersTable, teamsTable, pointsTable, usersTable } from "../src/db/schema.ts";
 import { eq, isNull } from "drizzle-orm";
 import z from "zod";
-import "dotenv/config";
+// import "dotenv/config";
 
 export const appRouter = router({
   getUsers: publicProcedure.query(async () => {
