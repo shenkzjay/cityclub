@@ -8,8 +8,8 @@
 //   router: appRouter,
 //   createContext,
 // });
-import { appRouter } from "../../../server/index.ts";
-import { createContext } from "../../../server/trpc.ts";
+import { appRouter } from "../../../server/index.js";
+import { createContext } from "../../../server/trpc.js";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 
 export const config = {
