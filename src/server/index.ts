@@ -1,4 +1,4 @@
-import { router, publicProcedure } from "./trpc";
+import { router, publicProcedure } from "./trpc.js";
 import { db } from "../db/db";
 import { matchTable, playersTable, teamsTable, pointsTable, usersTable } from "../db/schema";
 import { eq, isNull } from "drizzle-orm";
