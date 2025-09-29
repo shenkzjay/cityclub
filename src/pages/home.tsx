@@ -149,15 +149,15 @@ export function HomePage() {
     },
     {
       homeTeam: "TeamA",
-      awayTeam: "TeamC",
+      awayTeam: "TeamD",
       startTime: "7:30am",
       homeScore: null,
       awayScore: null,
       date: "5 Oct, 2025",
     },
     {
-      homeTeam: "TeamD",
-      awayTeam: "TeamB",
+      homeTeam: "TeamB",
+      awayTeam: "TeamC",
       startTime: "7:30am",
       homeScore: null,
       awayScore: null,
