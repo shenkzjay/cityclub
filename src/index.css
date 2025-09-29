@@ -13,6 +13,11 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+.markdown-content {
+  display: block;
+  flex-direction: column;
+}
+
 .markdown-content p {
   margin-bottom: 30px;
 }
@@ -26,4 +31,6 @@
   background-repeat: no-repeat;
 
   background-size: cover;
+
+  background-position: center center;
 }

@@ -10,7 +10,7 @@ import { createNextApiHandler } from "@trpc/server/adapters/next";
 // });
 import { appRouter } from "../../src/server/index.js";
 import { createContext } from "../../src/server/trpc.js";
-import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
+// import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 
 // const corsMiddleware = cors({
 //   methods: ["GET", "POST", "OPTIONS"],

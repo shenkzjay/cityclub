@@ -1,15 +1,12 @@
 ---
-title: My First News
-date: 2025-09-21
 ---
 
-# Ola's goal vital as Team A secures all 3 points!
+# Ugo secured the lead as Team A cruised through Team B!
 
 ![news update](/cup.jpg)
 
-In another intense encounter that witnessed the early dismissal of the formidable Cubasi and skillful Abdul due to disciplinary issues.
+An early goal from Coach put a dent on what was an exciting start for Team B.
 
-Jagaban was able restored parity after Coach took the lead earlier on
-capitalizing from a blunder by Musa.
+Their efforts to battle back suffered a major blow as Ugo volley home from distance, capping a fine performance all morning.
 
-Ola was able to take advantage of poor touch in defence to slot home what proved to be the winner in what was an intense mouth watering fixture.
+Team B was awarded a controversial penalty when a goal bound shot struck Cubasi's arm. Uche was there to convert but it wasn't enough to salvage something from the encounter.

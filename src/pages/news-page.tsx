@@ -45,13 +45,15 @@ export default function NewsPage() {
   }
 
   return (
-    <article className="max-w-3xl mx-auto p-6 prose prose-lg">
-      <Link to="/" className="text-blue-600 mb-4 inline-block">
-        &larr; Back to Home
-      </Link>
-      <div className="markdown-content">
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
-      </div>
-    </article>
+    <section className="bg-green-600">
+      <article className="max-w-3xl mx-auto p-6 prose prose-lg ">
+        <Link to="/" className="text-white mb-4 inline-block">
+          &larr; Back to Home
+        </Link>
+        <div className="markdown-content">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+        </div>
+      </article>
+    </section>
   );
 }

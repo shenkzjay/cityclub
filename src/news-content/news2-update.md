@@ -1,5 +1,4 @@
 ---
-date: 2025-09-21
 ---
 
 # A lone goal from Engr Segun proved decisive

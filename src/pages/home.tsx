@@ -56,6 +56,7 @@ export function HomePage() {
   const [currentFixtureIndex, setCurrentFixtureIndex] = useState(2);
   const [matchWeekCount, setMatchWeekCount] = useState(2);
   const [activeTab, setActiveTab] = useState<"team" | "players">("team");
+  const [newsItemsToShow, setNewsItemsToShow] = useState(2);
 
   const { data: teams = [] } = trpc.getTeams.useQuery();
   const { data: players } = trpc.getPlayers.useQuery();
@@ -105,11 +106,13 @@ export function HomePage() {
   //   return team ? team.color : "gray";
   // };
 
-  // const newsTitles = Object.entries(newsModules).map(([path, content]) => {
-  //   const title = extractTitleFromMarkdown(content as string);
+  const handleLoadMoreNews = () => {
+    setNewsItemsToShow(newsItems.length);
+  };
 
-  //   return { title, path };
-  // });
+  const handleLoadLessNews = () => {
+    setNewsItemsToShow(2);
+  };
 
   const matchFixtures = [
     {
@@ -132,16 +135,16 @@ export function HomePage() {
       homeTeam: "TeamA",
       awayTeam: "TeamB",
       startTime: "7:30am",
-      homeScore: null,
-      awayScore: null,
+      homeScore: 2,
+      awayScore: 1,
       date: "28 Sept, 2025",
     },
     {
       homeTeam: "TeamC",
       awayTeam: "TeamD",
       startTime: "7:30am",
-      homeScore: null,
-      awayScore: null,
+      homeScore: 0,
+      awayScore: 1,
       date: "28 Sept, 2025",
     },
     {
@@ -207,8 +210,8 @@ export function HomePage() {
   };
 
   return (
-    <section className=" flex flex-col gap-6  pb-20">
-      <section className="[background:url('/cup.jpg')] relative h-[20rem] [background-position:right] bg_pics w-full">
+    <section className=" flex flex-col gap-6  pb-20 bg-green-600">
+      <section className="[background:url('/gpt.jpg')] relative h-[25rem] [background-position:right] bg_pics w-full">
         <span className="block absolute top-0 bg-black/50 h-full w-full"></span>
         <div className="relative flex flex-col justify-center items-center h-full mx-6 text-center gap-6">
           <h2 className="text-3xl font-bold">City League Cup</h2>
@@ -225,11 +228,11 @@ export function HomePage() {
       <section className="mx-6 mt-32 md:w-[70vw] md:mx-auto ">
         <h3 className="text-xl font-bold">Latest news</h3>
         <ul className=" space-y-2 prose mt-6">
-          {newsItems.map((item) => (
+          {newsItems.slice(0, newsItemsToShow).map((item) => (
             <Link
               key={item.slug}
               to={`/news/${item.slug}`}
-              className="flex gap-4 bg-[#333] p-3 hover:bg-gray-50 rounded-lg group"
+              className="flex gap-4 bg-white p-3 hover:bg-gray-50 rounded-lg group"
             >
               {item.image ? (
                 <img
@@ -244,22 +247,41 @@ export function HomePage() {
                 </div>
               )}
               <div>
-                <h4 className="font-semibold text-slate-300 group-hover:text-slate-700">
+                <h4 className="font-semibold text-green-600 group-hover:text-slate-700">
                   {item.title}
                 </h4>
-                <p className="text-sm text-gray-400 mt-1 group-hover:text-slate-500">Read more →</p>
+                <p className="text-sm text-green-500 mt-1 group-hover:text-slate-500">
+                  Read more →
+                </p>
               </div>
             </Link>
           ))}
         </ul>
-        <button className="text-center w-full mt-6 cursor-pointer">Load more..</button>
+        <div className="flex justify-center gap-4 mt-6">
+          {newsItemsToShow < newsItems.length && (
+            <button
+              onClick={handleLoadMoreNews}
+              className="text-center px-4 py-2 hover:font-bold cursor-pointer"
+            >
+              Load more..
+            </button>
+          )}
+          {newsItemsToShow > 2 && (
+            <button
+              onClick={handleLoadLessNews}
+              className="text-center px-4 py-2 hover:font-bold cursor-pointer"
+            >
+              ...Load less
+            </button>
+          )}
+        </div>
       </section>
 
       <section className="mt-32 mx-6 md:w-[70vw] md:mx-auto">
         <h3 className="text-xl font-bold">Fixtures</h3>
-        <div className="flex justify-center items-center gap-4 mt-6">
+        <div className="flex justify-center items-center gap-4 mt-6 text-white">
           <button
-            className="border p-2 flex w-12 h-12 items-center justify-center rounded-full cursor-pointer hover:bg-white hover:text-black hover:font-bold"
+            className=" p-2 flex w-12 h-12 items-center justify-center rounded-full cursor-pointer hover:bg-white hover:text-green-600 border hover:font-bold"
             aria-label="prev-button"
             onClick={() => {
               if (currentFixtureIndex === 0) {
@@ -280,7 +302,7 @@ export function HomePage() {
 
           <button
             aria-label="next-button"
-            className="border p-2 flex w-12 h-12 items-center justify-center rounded-full cursor-pointer hover:bg-white hover:text-black hover:font-bold"
+            className="border p-2 flex w-12 h-12 items-center justify-center rounded-full cursor-pointer hover:bg-white hover:text-green-600 hover:font-bold"
             onClick={() => {
               if (currentFixtureIndex >= matchFixtures.length - 2) {
                 // Go to first week
@@ -296,12 +318,12 @@ export function HomePage() {
           </button>
         </div>
 
-        <div className="text-center my-2 text-lg font-semibold text-gray-300">
+        <div className="text-center my-2 text-lg font-semibold text-white">
           {matchFixtures[currentFixtureIndex]?.date}
         </div>
 
         <div className="w-full flex">
-          <ul className="w-full flex flex-col gap-12  bg-[#333] p-6 rounded-xl">
+          <ul className="w-full flex flex-col gap-12  bg-white text-green-600 p-6 rounded-xl">
             {renderMatch(matchFixtures[currentFixtureIndex], currentFixtureIndex)}
             <li>
               <span className="w-full h-[.5px] bg-black block my-0"></span>
@@ -317,16 +339,20 @@ export function HomePage() {
         {/* Tab Pills */}
         <div className="flex border-b border-gray-200 mb-4 mt-6">
           <button
-            className={`px-4 py-2 font-medium text-sm w-full cursor-pointer ${
-              activeTab === "team" ? " bg-[#333] border-b-2 rounded-t-xl" : "text-gray-500 "
+            className={`px-4 py-2 font-bold text-sm w-full cursor-pointer ${
+              activeTab === "team"
+                ? " bg-white text-green-600 border-b-2 rounded-t-xl"
+                : "text-white  "
             }`}
             onClick={() => setActiveTab("team")}
           >
             Team Table
           </button>
           <button
-            className={`px-4 py-2 font-medium text-sm w-full cursor-pointer ${
-              activeTab === "players" ? "bg-[#333] border-b-2 rounded-t-xl" : "text-gray-500 "
+            className={`px-4 py-2 font-bold text-sm w-full cursor-pointer ${
+              activeTab === "players"
+                ? "bg-white text-green-600 border-b-2 rounded-t-xl"
+                : "text-white "
             }`}
             onClick={() => setActiveTab("players")}
           >
@@ -337,7 +363,7 @@ export function HomePage() {
         {/* Tab Content */}
         {activeTab === "team" ? (
           <div className="overflow-x-auto">
-            <table className="w-full mt-6">
+            <table className="w-full mt-6 mb-6">
               <thead className="text-sm font-bold">
                 <td className="px-3 py-2">Pos</td>
                 <td className="px-3 py-2">Team</td>
@@ -354,7 +380,10 @@ export function HomePage() {
               <tbody>
                 {sortedTeams && sortedTeams.length > 0
                   ? sortedTeams.map((team, idx) => (
-                      <tr key={team.id} className="odd:bg-[#333] even:bg-[#262626]">
+                      <tr
+                        key={team.id}
+                        className="odd:bg-white odd:text-green-600 even:bg-green-600"
+                      >
                         <td className="px-3 py-2">{idx + 1}</td>
                         <td className="px-3 py-2 text-nowrap">{team.teamName}</td>
                         <td className="px-3 py-2">{team.score.gamesPlayed}</td>
@@ -374,7 +403,7 @@ export function HomePage() {
         ) : (
           <section>
             <div className="overflow-x-auto ">
-              <table className="w-ful ">
+              <table className="w-full mb-6 ">
                 <thead className="w-full text-sm font-bold">
                   <tr>
                     <td className="px-4 py-2">No</td>
@@ -389,7 +418,10 @@ export function HomePage() {
                 <tbody>
                   {currentPageIndex && currentPageIndex.length > 0 ? (
                     currentPageIndex.map((player, idx) => (
-                      <tr key={player.id} className="odd:bg-[#333] even:bg-[#262626]">
+                      <tr
+                        key={player.id}
+                        className="odd:bg-white odd:text-green-600 even:bg-green-600"
+                      >
                         <td className="px-4 py-2">{startPageIndex + idx + 1}</td>
                         <td className="px-4 py-2">{player.playerName}</td>
                         <td className="px-4 py-2">{player.goals}</td>
@@ -415,7 +447,7 @@ export function HomePage() {
                   <button
                     key={i + 1}
                     onClick={() => paginate(i + 1)}
-                    className="bg-[#7b7b7b] hover:bg-[#c4c4c4] text-black font-semibold px-3 py-1 rounded-sm"
+                    className="bg-white hover:bg-[#c4c4c4] text-green-600 font-semibold px-3 py-1 rounded-sm"
                   >
                     {i + 1}
                   </button>
@@ -428,7 +460,7 @@ export function HomePage() {
                 </button>
               </div>
               <div>
-                <p>
+                <p className="hidden md:flex">
                   Pages {currentPage}/{totalPages}
                 </p>
               </div>
