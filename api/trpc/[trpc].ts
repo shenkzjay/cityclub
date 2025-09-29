@@ -8,8 +8,8 @@
 //   router: appRouter,
 //   createContext,
 // });
-import { appRouter } from "../../src/server/index.js";
-import { createContext } from "../../src/server/trpc.js";
+import { appRouter } from "../../server/index.js";
+import { createContext } from "../../server/trpc.js";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 
 // const corsMiddleware = cors({

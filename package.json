@@ -4,11 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "lint": "eslint .",
-    "preview": "vite preview",
-    "dev:server": "tsx ./src/server/index.ts"
+    "dev": "concurrently \"vite\" \"tsx watch src/server/dev-server.ts\"",
+    "build": "tsc --project tsconfig.json && vite build",
+    "vercel-build": "npm run build"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.1",
