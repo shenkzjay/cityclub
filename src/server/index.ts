@@ -1,5 +1,5 @@
 import { router, publicProcedure } from "./trpc.js";
-import { db } from "../db/db";
+import { db } from "../db/db.js";
 import { matchTable, playersTable, teamsTable, pointsTable, usersTable } from "../db/schema";
 import { eq, isNull } from "drizzle-orm";
 import z from "zod";
