@@ -1,6 +1,6 @@
 import { neon } from "@neondatabase/serverless";
 import { drizzle, NeonHttpDatabase } from "drizzle-orm/neon-http";
-import * as schema from "./schema"; // Removed .js extension
+import * as schema from "./schema.js"; // Removed .js extension
 // import "dotenv/config";
 
 function getNeonHttpUrl() {

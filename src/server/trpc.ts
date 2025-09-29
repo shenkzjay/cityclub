@@ -1,5 +1,5 @@
 import { initTRPC } from "@trpc/server";
-import { db } from "../db/db";
+import { db } from "../db/db.js";
 
 const t = initTRPC.create();
 
