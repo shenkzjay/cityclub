@@ -12,10 +12,6 @@ import { appRouter } from "../../../server/index.js";
 import { createContext } from "../../../server/trpc.js";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 
-export const config = {
-  runtime: "edge", // optional: use edge runtime
-};
-
 // const corsMiddleware = cors({
 //   methods: ["GET", "POST", "OPTIONS"],
 //   allowedHeaders: ["Content-Type", "Authorization"],
