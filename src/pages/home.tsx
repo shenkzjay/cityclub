@@ -214,13 +214,12 @@ export function HomePage() {
       <section className="[background:url('/gpt.jpg')] relative h-[25rem] [background-position:right] bg_pics w-full">
         <span className="block absolute top-0 bg-black/50 h-full w-full"></span>
         <div className="relative flex flex-col justify-center items-center h-full mx-6 text-center gap-6">
-          <h2 className="text-3xl font-bold">City League Cup</h2>
+          <h2 className="text-3xl font-bold">City League Cup 2025</h2>
           <div className="flex flex-col gap-2 font-semibold">
-            <p>Follow every actions here live! </p>
-            <p>Catch the fever!</p>
-            <p>Every match is a battle for glory</p>
-            <p>In an all pulsating encounters</p>
-            <p>Don't miss out</p>
+            <p>Don't miss out on the action </p>
+            <p>Checkout the latest news and highlights</p>
+            <p></p>
+            <p>Every match is a battle for glory!!!</p>
           </div>
         </div>
       </section>
