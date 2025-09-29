@@ -1,6 +1,6 @@
 import { router, publicProcedure } from "./trpc";
-import { db } from "../db";
-import { matchTable, playersTable, teamsTable, pointsTable, usersTable } from "../../db/schema";
+import { db } from "../db/db";
+import { matchTable, playersTable, teamsTable, pointsTable, usersTable } from "../db/schema";
 import { eq, isNull } from "drizzle-orm";
 import z from "zod";
 // import "dotenv/config";
