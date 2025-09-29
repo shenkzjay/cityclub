@@ -1,4 +1,4 @@
-// import { createNextApiHandler } from "@trpc/server/adapters/next";
+import { createNextApiHandler } from "@trpc/server/adapters/next";
 // import { createVercelHandler } from "@trpc/server/adapters/vercel"
 // import { appRouter } from "../../server/index";
 // import { createContext } from "../../server/trpc";
@@ -21,12 +21,16 @@ import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 //   credentials: true,
 // });
 
-export default async function handler(request: Request): Promise<Response> {
-  // Handle tRPC requests
-  return fetchRequestHandler({
-    endpoint: "/api/trpc",
-    req: request,
-    router: appRouter,
-    createContext,
-  });
-}
+// export default async function handler(request: Request): Promise<Response> {
+//   return fetchRequestHandler({
+//     endpoint: "/api/trpc",
+//     req: request,
+//     router: appRouter,
+//     createContext,
+//   });
+// }
+
+export default createNextApiHandler({
+  router: appRouter,
+  createContext,
+});
