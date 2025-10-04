@@ -53,8 +53,8 @@ const newsItems = Object.entries(newsModules).map(([path, content]) => {
 });
 
 export function HomePage() {
-  const [currentFixtureIndex, setCurrentFixtureIndex] = useState(2);
-  const [matchWeekCount, setMatchWeekCount] = useState(2);
+  const [currentFixtureIndex, setCurrentFixtureIndex] = useState(4);
+  const [matchWeekCount, setMatchWeekCount] = useState(3);
   const [activeTab, setActiveTab] = useState<"team" | "players">("team");
   const [newsItemsToShow, setNewsItemsToShow] = useState(2);
 

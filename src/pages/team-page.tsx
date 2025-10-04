@@ -78,7 +78,7 @@ export default function TeamPage() {
       <div className="mt-20">
         <h2 className="text-2xl font-bold mb-4">Team Players</h2>
         <div className="space-y-2">
-          <table className="w-ful ">
+          <table className="w-full ">
             <thead className="w-full text-sm font-bold">
               <tr>
                 <td className="px-4 py-2">No</td>
