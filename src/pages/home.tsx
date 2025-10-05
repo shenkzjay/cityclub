@@ -179,6 +179,22 @@ export function HomePage() {
       awayScore: null,
       date: "12 Oct, 2025",
     },
+    {
+      homeTeam: "TeamB",
+      awayTeam: "TeamA",
+      startTime: "7:30am",
+      homeScore: null,
+      awayScore: null,
+      date: "19 Oct, 2025",
+    },
+    {
+      homeTeam: "TeamD",
+      awayTeam: "TeamC",
+      startTime: "7:30am",
+      homeScore: null,
+      awayScore: null,
+      date: "19 Oct, 2025",
+    },
   ];
 
   const totalWeeks = Math.ceil(matchFixtures.length / 2); // = 3
