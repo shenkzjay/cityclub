@@ -1,14 +1,12 @@
 ---
 ---
 
-# A lone goal from Engr Segun proved decisive
+# Ugo secured the lead as Team A cruised through Team B!
 
 ![news update](/cup.jpg)
 
-There was not much to seperate between the two teams
-as both sides appeared evenly matched
+An early goal from Ugo put a dent on what was an exciting start for Team B.
 
-Until Engr Segun controversial goal gave his team the much needed
-3 points in the encounter.
+Their efforts to battle back suffered a major blow as Coach volley home from distance, capping a fine performance all morning.
 
-The opponents, Team B protested for an earlier foul on their keeper - Chris, which the match official - Benito waved on as fair play.
+Team B was awarded a controversial penalty when a goal bound shot struck Cubasi's arm. Uche was there to convert but it wasn't enough to salvage something from the encounter.
