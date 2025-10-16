@@ -53,8 +53,8 @@ const newsItems = Object.entries(newsModules).map(([path, content]) => {
 });
 
 export function HomePage() {
-  const [currentFixtureIndex, setCurrentFixtureIndex] = useState(4);
-  const [matchWeekCount, setMatchWeekCount] = useState(3);
+  const [currentFixtureIndex, setCurrentFixtureIndex] = useState(8);
+  const [matchWeekCount, setMatchWeekCount] = useState(5);
   const [activeTab, setActiveTab] = useState<"team" | "players">("team");
   const [newsItemsToShow, setNewsItemsToShow] = useState(2);
 
@@ -167,16 +167,16 @@ export function HomePage() {
       homeTeam: "TeamC",
       awayTeam: "TeamA",
       startTime: "7:30am",
-      homeScore: null,
-      awayScore: null,
+      homeScore: 1,
+      awayScore: 0,
       date: "12 Oct, 2025",
     },
     {
       homeTeam: "TeamB",
       awayTeam: "TeamD",
       startTime: "7:30am",
-      homeScore: null,
-      awayScore: null,
+      homeScore: 2,
+      awayScore: 0,
       date: "12 Oct, 2025",
     },
     {
@@ -242,16 +242,19 @@ export function HomePage() {
   };
 
   return (
-    <section className=" flex flex-col gap-6  pb-20 bg-green-600">
-      <section className="[background:url('/gpt.jpg')] relative h-[25rem] [background-position:right] bg_pics w-full">
+    <section className=" flex flex-col gap-6  pb-20 bg-[#262626]">
+      <section className="[background:url('/candles.jpg')] relative h-[25rem] [background-position:right] bg_pics w-full">
         <span className="block absolute top-0 bg-black/50 h-full w-full"></span>
         <div className="relative flex flex-col justify-center items-center h-full mx-6 text-center gap-6">
-          <h2 className="text-3xl font-bold">City League Cup 2025</h2>
-          <div className="flex flex-col gap-2 font-semibold">
-            <p>Don't miss out on the action </p>
-            <p>Checkout the latest news and highlights</p>
+          <h2 className="text-3xl font-bold">Our deepest sympathy to Uche aka Jagaban!</h2>
+          <div className="flex flex-col gap-2 font-semibold text-balance">
+            <p>We were so sorry to hear about the passing of your dear mother. </p>
+            <p> May you find comfort in the wonderful memories you shared together</p>
             <p></p>
-            <p>Every match is a battle for glory!!!</p>
+            <p>
+              City Club United <br />
+              sending you all the love and support.
+            </p>
           </div>
         </div>
       </section>
@@ -263,7 +266,7 @@ export function HomePage() {
             <Link
               key={item.slug}
               to={`/news/${item.slug}`}
-              className="flex gap-4 bg-white p-3 hover:bg-gray-50 rounded-lg group"
+              className="flex gap-4 bg-[#333] p-3 hover:bg-gray-50 rounded-lg group"
             >
               {item.image ? (
                 <img
@@ -278,12 +281,10 @@ export function HomePage() {
                 </div>
               )}
               <div>
-                <h4 className="font-semibold text-green-600 group-hover:text-slate-700">
+                <h4 className="font-semibold text-white group-hover:text-slate-700">
                   {item.title}
                 </h4>
-                <p className="text-sm text-green-500 mt-1 group-hover:text-slate-500">
-                  Read more →
-                </p>
+                <p className="text-sm text-white/50 mt-1 group-hover:text-slate-500">Read more →</p>
               </div>
             </Link>
           ))}
@@ -353,8 +354,8 @@ export function HomePage() {
           {matchFixtures[currentFixtureIndex]?.date}
         </div>
 
-        <div className="w-full flex">
-          <ul className="w-full flex flex-col gap-12  bg-white text-green-600 p-6 rounded-xl">
+        <div className="w-full flex ">
+          <ul className="w-full flex flex-col gap-12  bg-[#333] text-white p-6 rounded-xl">
             {renderMatch(matchFixtures[currentFixtureIndex], currentFixtureIndex)}
             <li>
               <span className="w-full h-[.5px] bg-black block my-0"></span>
@@ -372,7 +373,7 @@ export function HomePage() {
           <button
             className={`px-4 py-2 font-bold text-sm w-full cursor-pointer ${
               activeTab === "team"
-                ? " bg-white text-green-600 border-b-2 rounded-t-xl"
+                ? " bg-[#333] text-white border-b-2 rounded-t-xl"
                 : "text-white  "
             }`}
             onClick={() => setActiveTab("team")}
@@ -382,7 +383,7 @@ export function HomePage() {
           <button
             className={`px-4 py-2 font-bold text-sm w-full cursor-pointer ${
               activeTab === "players"
-                ? "bg-white text-green-600 border-b-2 rounded-t-xl"
+                ? "bg-[#333] text-white border-b-2 rounded-t-xl"
                 : "text-white "
             }`}
             onClick={() => setActiveTab("players")}
@@ -411,10 +412,7 @@ export function HomePage() {
               <tbody>
                 {sortedTeams && sortedTeams.length > 0
                   ? sortedTeams.map((team, idx) => (
-                      <tr
-                        key={team.id}
-                        className="odd:bg-white odd:text-green-600 even:bg-green-600"
-                      >
+                      <tr key={team.id} className="odd:bg-[#333] odd:text-white">
                         <td className="px-3 py-2">{idx + 1}</td>
                         <td className="px-3 py-2 text-nowrap">{team.teamName}</td>
                         <td className="px-3 py-2">{team.score.gamesPlayed}</td>
@@ -449,10 +447,7 @@ export function HomePage() {
                 <tbody>
                   {currentPageIndex && currentPageIndex.length > 0 ? (
                     currentPageIndex.map((player, idx) => (
-                      <tr
-                        key={player.id}
-                        className="odd:bg-white odd:text-green-600 even:bg-green-600"
-                      >
+                      <tr key={player.id} className="odd:bg-[#333] odd:text-white">
                         <td className="px-4 py-2">{startPageIndex + idx + 1}</td>
                         <td className="px-4 py-2">{player.playerName}</td>
                         <td className="px-4 py-2">{player.goals}</td>
@@ -478,7 +473,7 @@ export function HomePage() {
                   <button
                     key={i + 1}
                     onClick={() => paginate(i + 1)}
-                    className="bg-white hover:bg-[#c4c4c4] text-green-600 font-semibold px-3 py-1 rounded-sm"
+                    className="bg-white hover:bg-[#c4c4c4] text-black font-semibold px-3 py-1 rounded-sm"
                   >
                     {i + 1}
                   </button>

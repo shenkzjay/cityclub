@@ -45,7 +45,7 @@ export default function NewsPage() {
   }
 
   return (
-    <section className="bg-green-600">
+    <section className="bg-[#262626] pb-20">
       <article className="max-w-3xl mx-auto p-6 prose prose-lg ">
         <Link to="/" className="text-white mb-4 inline-block">
           &larr; Back to Home

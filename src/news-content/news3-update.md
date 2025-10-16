@@ -1,14 +1,14 @@
 ---
 ---
 
-# Rudiger's goal was enough to seal 3 points!
+# Team C too hot for Team B!
 
 ![news update](/cup.jpg)
 
-With notable absentees such as the stalwart defender Moses and clinical striker striker AY,
+Team C ran riot on Team B by beating them to mercilessly in a 4 - 1 encounter at fulltime.
 
-Team D was able to grab a goal early in the encounter through a well struck volley from Rudiger after an unexpected blunder from Musa.
+Abel initiated the scoring after sloting home a well timed assist from Uche.
 
-It was a heated encountered that saw both sides engaging in fierce tackles which invited bookings from the match official.
+KC bag two goal and Dan put the final nail to the coffin in a thrilling encounter.
 
-The goal early in the first half was enough to seal all 3 points as Team D claim their spot at the top of the table.
+Team C gained their first point since the start of the campaign.
