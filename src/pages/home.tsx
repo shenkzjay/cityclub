@@ -53,8 +53,8 @@ const newsItems = Object.entries(newsModules).map(([path, content]) => {
 });
 
 export function HomePage() {
-  const [currentFixtureIndex, setCurrentFixtureIndex] = useState(10);
-  const [matchWeekCount, setMatchWeekCount] = useState(6);
+  const [currentFixtureIndex, setCurrentFixtureIndex] = useState(14);
+  const [matchWeekCount, setMatchWeekCount] = useState(8);
   const [activeTab, setActiveTab] = useState<"team" | "players">("team");
   const [newsItemsToShow, setNewsItemsToShow] = useState(2);
 
@@ -226,6 +226,38 @@ export function HomePage() {
       homeScore: 2,
       awayScore: 1,
       date: "2 Nov, 2025",
+    },
+    {
+      homeTeam: "TeamB",
+      awayTeam: "TeamA",
+      startTime: "7:30am",
+      homeScore: null,
+      awayScore: null,
+      date: "9 Nov, 2025",
+    },
+    {
+      homeTeam: "TeamD",
+      awayTeam: "TeamC",
+      startTime: "7:30am",
+      homeScore: null,
+      awayScore: null,
+      date: "9 Nov, 2025",
+    },
+    {
+      homeTeam: "TeamD",
+      awayTeam: "TeamA",
+      startTime: "7:30am",
+      homeScore: null,
+      awayScore: null,
+      date: "16 Nov, 2025",
+    },
+    {
+      homeTeam: "TeamC",
+      awayTeam: "TeamB",
+      startTime: "7:30am",
+      homeScore: null,
+      awayScore: null,
+      date: "16 nov, 2025",
     },
   ];
 
