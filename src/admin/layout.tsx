@@ -5,19 +5,27 @@ export const AdminLayout = ({ children }: { children: React.ReactNode }) => {
   return (
     <TRPCProvider>
       <section className="flex flex-row">
-        <div className="w-[18rem] h-screen bg-[#333]">
-          <ul>
-            <li>
-              <Link to="/admin">Home</Link>
+        <div className="w-[18rem] h-screen bg-[#333] ">
+          <ul className="py-6  grid gap-4">
+            <li className=" hover:bg-[#262626] cursor-pointer flex">
+              <Link to="/admin" className=" w-full p-3 ">
+                Home
+              </Link>
             </li>
-            <li>
-              <Link to={"/admin/teams/create-teams"}>Teams</Link>
+            <li className=" hover:bg-[#262626] cursor-pointer flex ">
+              <Link to={"/admin/teams/create-teams"} className=" w-full p-3 ">
+                Teams
+              </Link>
             </li>
-            <li>
-              <Link to={"/admin/players/create-players"}>Players</Link>
+            <li className="hover:bg-[#262626] cursor-pointer flex">
+              <Link to={"/admin/players/create-players"} className=" w-full p-3 ">
+                Players
+              </Link>
             </li>
-            <li>
-              <Link to={"/admin/points/points-update"}>Scores</Link>
+            <li className=" hover:bg-[#262626] cursor-pointer flex">
+              <Link to={"/admin/points/points-update"} className=" w-full p-3 ">
+                Scores
+              </Link>
             </li>
           </ul>
         </div>

@@ -45,12 +45,12 @@ export default function NewsPage() {
   }
 
   return (
-    <section className="bg-[#262626] pb-20">
+    <section className="bg-white pb-20">
       <article className="max-w-3xl mx-auto p-6 prose prose-lg ">
-        <Link to="/" className="text-white mb-4 inline-block">
+        <Link to="/" className="text-black mb-4 inline-block">
           &larr; Back to Home
         </Link>
-        <div className="markdown-content">
+        <div className="markdown-content text-black">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
         </div>
       </article>

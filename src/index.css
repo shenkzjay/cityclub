@@ -16,6 +16,7 @@
 .markdown-content {
   display: block;
   flex-direction: column;
+  height: 100%;
 }
 
 .markdown-content p {
