@@ -2,7 +2,15 @@ import { QueryClient } from "@tanstack/react-query";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import type { AppRouter } from "../server";
 
-export const queryClient = new QueryClient();
+export const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5,
+
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const getTrpcUrl = () => {
   if (import.meta.env.DEV) {
