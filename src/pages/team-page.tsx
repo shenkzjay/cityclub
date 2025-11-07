@@ -76,7 +76,7 @@ export default function TeamPage() {
 
       {/* Upcoming Fixtures */}
       <div className="mt-20">
-        <h2 className="text-2xl font-bold mb-4">Team Players</h2>
+        <h2 className="text-2xl font-bold mb-4 text-black">Team Players</h2>
         <div className="space-y-2">
           <table className="w-full ">
             <thead className="w-full text-sm font-bold text-black">

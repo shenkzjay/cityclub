@@ -317,7 +317,8 @@ export function HomePage() {
     <section className=" flex flex-col gap-6  pb-20 bg-[#fff]">
       <section className="[background:url('/cityclub1.jpg')] relative h-[30rem] [background-position:center] bg_pics w-full">
         <span className="block absolute top-0 bg-black/50 h-full w-full"></span>
-        <div className="relative flex flex-col justify-center items-center h-full mx-6 text-center gap-6">
+        <div className="relative flex flex-col justify-center items-center h-full mx-6 text-center">
+          <p className="bg-white/30 py-1 px-2 text-sm rounded-2xl text-left">News update⚡️</p>
           <h2 className="text-3xl font-bold">TeamB defeated TeamD to claim top spot! 😩</h2>
           {/* <div className="flex flex-col gap-2 font-semibold text-balance">
             <p>Team D lost their spot at the top of the league! </p>
@@ -325,7 +326,7 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="mx-6 mt-32 md:w-[70vw] md:mx-auto ">
+      <section className="mx-6 mt-20 md:w-[70vw] md:mx-auto ">
         <h3 className="text-xl font-bold text-black">Latest news</h3>
         <ul className=" space-y-6  mt-6">
           {newsItems.slice(0, newsItemsToShow).map((item, index) => (
@@ -379,7 +380,7 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="mt-32 mx-6 md:w-[70vw] md:mx-auto text-black">
+      <section className="mt-20 mx-6 md:w-[70vw] md:mx-auto text-black">
         <h3 className="text-xl font-bold ">Fixtures</h3>
         <div className="flex justify-center items-center gap-4 mt-6 ">
           <button
@@ -436,7 +437,7 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className=" mb-20 mt-32 mx-6 md:w-[70vw] md:mx-auto">
+      <section className=" mb-20 mt-20 mx-6 md:w-[70vw] md:mx-auto">
         <h3 className="text-xl font-bold text-black">Team and player stats</h3>
         {/* Tab Pills */}
         <div className="flex border-b border-gray-200 mb-4 mt-6">
