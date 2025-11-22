@@ -53,8 +53,8 @@ const newsItems = Object.entries(newsModules).map(([path, content]) => {
 });
 
 export function HomePage() {
-  const [currentFixtureIndex, setCurrentFixtureIndex] = useState(16);
-  const [matchWeekCount, setMatchWeekCount] = useState(10);
+  const [currentFixtureIndex, setCurrentFixtureIndex] = useState(18);
+  const [matchWeekCount, setMatchWeekCount] = useState(12);
   const [activeTab, setActiveTab] = useState<"team" | "players">("team");
   const [newsItemsToShow, setNewsItemsToShow] = useState(2);
 
@@ -253,17 +253,33 @@ export function HomePage() {
       homeTeam: "TeamD",
       awayTeam: "TeamA",
       startTime: "7:30am",
-      homeScore: null,
-      awayScore: null,
+      homeScore: 0,
+      awayScore: 0,
       date: "16 Nov, 2025",
     },
     {
       homeTeam: "TeamC",
       awayTeam: "TeamB",
       startTime: "7:30am",
+      homeScore: 1,
+      awayScore: 1,
+      date: "16 nov, 2025",
+    },
+    {
+      homeTeam: "TeamC",
+      awayTeam: "TeamA",
+      startTime: "7:30am",
       homeScore: null,
       awayScore: null,
-      date: "16 nov, 2025",
+      date: "23 Nov, 2025",
+    },
+    {
+      homeTeam: "TeamB",
+      awayTeam: "TeamD",
+      startTime: "7:30am",
+      homeScore: null,
+      awayScore: null,
+      date: "23 Nov, 2025",
     },
   ];
 
@@ -315,7 +331,7 @@ export function HomePage() {
 
   return (
     <section className=" flex flex-col gap-6  pb-20 bg-[#fff]">
-      <section className="[background:url('/cityclub2.jpg')] relative h-[30rem] [background-position:center] bg_pics w-full">
+      <section className="[background:url('/cityclub3.jpg')] relative h-[30rem] [background-position:center] bg_pics w-full">
         <span className="block absolute top-0 bg-black/50 h-full w-full"></span>
         <div className="relative flex flex-col justify-center items-center h-full mx-6 text-center">
           <p className="bg-white/30 py-1 px-2 text-sm rounded-2xl text-left">News update⚡️</p>
