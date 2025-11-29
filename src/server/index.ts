@@ -3,8 +3,7 @@ import { db } from "../db/db.js";
 import { matchTable, playersTable, teamsTable, pointsTable, usersTable } from "../db/schema.js";
 import { eq, isNull } from "drizzle-orm";
 import z from "zod";
-import { compareHashedPassword, hashPassword, setCookieSession } from "@/lib/session.js";
-import type { IncomingMessage, ServerResponse } from "http";
+import { compareHashedPassword, hashPassword, setCookieSession } from "../lib/session.js";
 
 // import "dotenv/config";
 
