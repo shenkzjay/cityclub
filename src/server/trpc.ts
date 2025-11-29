@@ -1,11 +1,11 @@
 import { initTRPC } from "@trpc/server";
 import { db } from "../db/db.js";
-import { getSessionCookie, SessionPayload } from "@/lib/session.js";
+import { getSessionCookie, SessionPayload } from "../lib/session.js";
 
 import type { NodeHTTPCreateContextFnOptions } from "@trpc/server/adapters/node-http";
 import type { IncomingMessage, ServerResponse } from "http";
 import { eq } from "drizzle-orm";
-import { usersTable } from "@/db/schema.js";
+import { usersTable } from "../db/schema.js";
 
 export const createContext = async ({
   req,
