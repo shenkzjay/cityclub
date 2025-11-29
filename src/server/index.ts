@@ -3,9 +3,16 @@ import { db } from "../db/db.js";
 import { matchTable, playersTable, teamsTable, pointsTable, usersTable } from "../db/schema.js";
 import { eq, isNull } from "drizzle-orm";
 import z from "zod";
+import { compareHashedPassword, hashPassword, setCookieSession } from "@/lib/session.js";
+import type { IncomingMessage, ServerResponse } from "http";
+
 // import "dotenv/config";
 
 export const appRouter = router({
+  getAdminSession: publicProcedure.query(async ({ ctx }) => {
+    return ctx.user;
+  }),
+
   getUsers: publicProcedure.query(async () => {
     const users = await db.get().select().from(usersTable);
 
@@ -15,6 +22,80 @@ export const appRouter = router({
   getUnassignedPlayers: publicProcedure.query(async () => {
     return await db.get().select().from(playersTable).where(isNull(playersTable.teamId)); // ← only players without a team
   }),
+
+  //signup
+  userSignUp: publicProcedure
+    .input(
+      z.object({
+        username: z.string().min(1).trim(),
+        email: z.email().trim(),
+        password: z.string().min(1),
+      })
+    )
+    .mutation(async (opts) => {
+      const { input } = opts;
+
+      const existingAdminUser = await db.get().query.usersTable.findFirst({
+        where: eq(usersTable.email, input.email.trim()),
+      });
+
+      if (existingAdminUser) {
+        throw new Error("An admin with this email already exists.");
+      }
+
+      //hash password
+      const hashedPassword = await hashPassword(input.password);
+
+      const [newAdmin] = await db
+        .get()
+        .insert(usersTable)
+        .values({
+          username: input.username.trim(),
+          password: hashedPassword,
+          email: input.email.trim(),
+        })
+        .returning();
+
+      return newAdmin;
+    }),
+
+  //login
+  userLogin: publicProcedure
+    .input(
+      z.object({
+        email: z.email().trim(),
+        password: z.string().min(1),
+      })
+    )
+    .mutation(async (opts) => {
+      const { input, ctx } = opts;
+
+      const existingUser = await db.get().query.usersTable.findFirst({
+        where: eq(usersTable.email, input.email.trim()),
+      });
+
+      if (!existingUser) {
+        throw Error("email or password incorrect");
+      }
+
+      const comparePassword = await compareHashedPassword(
+        input.password.trim(),
+        existingUser.password
+      );
+
+      if (!comparePassword) {
+        throw Error("email or password incorrect");
+      }
+
+      const sessionPayload = {
+        userId: existingUser.id.toString(),
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      };
+
+      await setCookieSession(sessionPayload, ctx.res);
+
+      return { message: "Login successful" };
+    }),
 
   playerCreate: publicProcedure
     .input(

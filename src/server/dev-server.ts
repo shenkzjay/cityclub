@@ -10,9 +10,9 @@ createHTTPServer({
   router: appRouter,
   createContext,
   middleware: cors({
-    origin: ["http://localhost:5173", "http://localhost:5174"], // ✅ Allow Vite dev server
-    credentials: true, // ✅ If you use cookies/auth
+    origin: ["http://localhost:5173", "http://localhost:5174"],
+    credentials: true,
   }),
 }).listen(port);
 
-console.log(`✅ tRPC server running on http://localhost:${port}`);
+console.log(`tRPC server running on http://localhost:${port}`);

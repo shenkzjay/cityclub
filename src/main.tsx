@@ -8,8 +8,10 @@ import CreatePlayersComponent from "./admin/players/create-players.tsx";
 import PointsUpdate from "./admin/points/points-update.tsx";
 import NewsPage from "./pages/news-page.tsx";
 import TeamPage from "./pages/team-page.tsx";
+import AdminSignIn from "./admin/sign-in/index.tsx";
 
 import { TRPCProvider } from "./provider.tsx";
+import SignUp from "./admin/signup/index.tsx";
 
 const root = document.getElementById("root")!;
 
@@ -19,6 +21,8 @@ ReactDOM.createRoot(root).render(
       <Routes>
         <Route path="/" element={<App />} />
         <Route path="/admin" element={<Admin />} />
+        <Route path="/signin" element={<AdminSignIn />} />
+        <Route path="/signup" element={<SignUp />} />
         <Route path="/admin/teams/create-teams" element={<CreateTeamsComponent />} />
         <Route path="/admin/players/create-players" element={<CreatePlayersComponent />} />
         <Route path="/admin/points/points-update" element={<PointsUpdate />} />
