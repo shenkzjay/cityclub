@@ -53,8 +53,8 @@ const newsItems = Object.entries(newsModules).map(([path, content]) => {
 });
 
 export function HomePage() {
-  const [currentFixtureIndex, setCurrentFixtureIndex] = useState(20);
-  const [matchWeekCount, setMatchWeekCount] = useState(14);
+  const [currentFixtureIndex, setCurrentFixtureIndex] = useState(22);
+  const [matchWeekCount, setMatchWeekCount] = useState(16);
   const [activeTab, setActiveTab] = useState<"team" | "players">("team");
   const [newsItemsToShow, setNewsItemsToShow] = useState(2);
 
@@ -285,16 +285,16 @@ export function HomePage() {
       homeTeam: "TeamB",
       awayTeam: "TeamA",
       startTime: "7:30am",
-      homeScore: null,
-      awayScore: null,
+      homeScore: 0,
+      awayScore: 0,
       date: "30 Nov, 2025",
     },
     {
       homeTeam: "TeamD",
       awayTeam: "TeamC",
       startTime: "7:30am",
-      homeScore: null,
-      awayScore: null,
+      homeScore: 0,
+      awayScore: 2,
       date: "30 Nov, 2025",
     },
     {
@@ -368,7 +368,8 @@ export function HomePage() {
         <div className="relative flex flex-col justify-center items-center h-full mx-6 text-center">
           <p className="bg-white/30 py-1 px-2 text-sm rounded-2xl text-left">News update⚡️</p>
           <h2 className="text-3xl font-bold">
-            TeamB crushed TeamD's title hope <br />
+            TeamC goes top of the table ahead of Match week 12
+            <br />
             😩
           </h2>
           {/* <div className="flex flex-col gap-2 font-semibold text-balance">
