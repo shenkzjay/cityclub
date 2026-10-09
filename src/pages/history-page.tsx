@@ -16,7 +16,10 @@ function championOf(teams: { teamName: string; score?: { points: number } | null
 }
 
 export default function HistoryPage() {
-  const { data: competitions = [], isLoading, isError } = trpc.competitionsList.useQuery();
+  const { data: competitions = [], isLoading, isError } = trpc.competitionsList.useQuery(undefined, {
+    staleTime: 15 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
+  });
 
   return (
     <div className="max-w-4xl mx-auto p-6">
@@ -30,7 +33,15 @@ export default function HistoryPage() {
         competition simply opens a fresh season.
       </p>
 
-      {isLoading && <div>Loading competitions...</div>}
+      {isLoading && (
+        <ul className="grid gap-4" aria-label="Loading competitions">
+          {Array.from({ length: 4 }, (_, i) => (
+            <li key={i} className="animate-pulse">
+              <div className="h-24 bg-[#f8f0ed] rounded-xl" />
+            </li>
+          ))}
+        </ul>
+      )}
 
       {isError && <div className="text-red-500">Failed to load competitions.</div>}
 

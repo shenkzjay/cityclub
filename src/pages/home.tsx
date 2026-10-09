@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { trpc } from "../client/trpc";
 import { Link } from "react-router";
 
@@ -36,7 +36,7 @@ function extractImageFromMarkdown(content: string): string | null {
   // Match Markdown image syntax: ![alt](src)
   const imageMatch = content.match(/!\[.*?\]\((.*?)\)/);
   if (imageMatch) {
-    let src = imageMatch[1].trim();
+    const src = imageMatch[1].trim();
 
     return src;
   }
@@ -59,6 +59,12 @@ export function HomePage() {
   const [newsItemsToShow, setNewsItemsToShow] = useState(2);
 
   const ONE_HOUR = 60 * 60 * 1000;
+
+  const utils = trpc.useUtils();
+
+  useEffect(() => {
+    utils.competitionsList.prefetch();
+  }, [utils]);
 
   const { data: teams = [] } = trpc.getTeams.useQuery(undefined, {
     staleTime: ONE_HOUR,
