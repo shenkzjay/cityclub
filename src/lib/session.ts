@@ -111,7 +111,7 @@ export const setCookieSession = async (user: SessionPayload, res: ServerResponse
   res.setHeader("Set-Cookie", cookieString);
 };
 
-export const clearCookieSesson = async (res: ServerResponse) => {
+export const clearCookieSession = async (res: ServerResponse) => {
   const cookieString = serialize("session", "", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",

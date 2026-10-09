@@ -10,7 +10,12 @@ import {
 } from "../db/schema.js";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import z from "zod";
-import { compareHashedPassword, hashPassword, setCookieSession } from "../lib/session.js";
+import {
+  compareHashedPassword,
+  hashPassword,
+  setCookieSession,
+  clearCookieSession,
+} from "../lib/session.js";
 
 // import "dotenv/config";
 
@@ -88,7 +93,8 @@ export const appRouter = router({
         })
         .returning();
 
-      return newAdmin;
+      const { id, username, email } = newAdmin;
+      return { id, username, email };
     }),
 
   //login
@@ -128,6 +134,13 @@ export const appRouter = router({
 
       return { message: "Login successful" };
     }),
+
+  //logout
+  userLogout: protectedProcedure.mutation(async ({ ctx }) => {
+    await clearCookieSession(ctx.res);
+
+    return { message: "Logged out" };
+  }),
 
   // ---- competitions -------------------------------------------------------
 
