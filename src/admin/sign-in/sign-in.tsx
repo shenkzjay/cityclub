@@ -1,12 +1,23 @@
 import { useNavigate } from "react-router";
 import { trpc } from "../../client/trpc";
+import { useEffect } from "react";
 
 export function SignIn() {
   const navigate = useNavigate();
 
+  const { data: session, isFetching } = trpc.getAdminSession.useQuery(undefined, {
+    refetchOnMount: "always",
+  });
+
+  useEffect(() => {
+    if (!isFetching && session) {
+      navigate("/admin", { replace: true });
+    }
+  }, [session, isFetching, navigate]);
+
   const userLogin = trpc.userLogin.useMutation({
     onSuccess: () => {
-      navigate("/admin");
+      navigate("/admin", { replace: true });
     },
 
     onError: () => {
