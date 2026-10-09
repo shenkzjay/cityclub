@@ -3,7 +3,6 @@ import * as argon2 from "argon2";
 import * as jose from "jose";
 import type { IncomingMessage, ServerResponse } from "http";
 import { parse, serialize } from "cookie";
-import { z } from "zod";
 
 const secret = new TextEncoder().encode("city_club_league");
 
@@ -13,11 +12,6 @@ export interface SessionPayload {
   userId: string;
   expiresAt: string;
 }
-
-const SessionPayloadSchema = z.object({
-  userId: z.string(),
-  expiresAt: z.string().datetime(),
-});
 
 //hash the user's password and store in database usng argon2
 export const hashPassword = async (password: string): Promise<string> => {
@@ -45,23 +39,25 @@ export const createEncryptedSession = async (payload: SessionPayload) => {
 };
 
 //verify session token
-export const verifySessionToken = async (token: string) => {
+export const verifySessionToken = async (token: string): Promise<SessionPayload> => {
   const { payload } = await jose.jwtVerify(token, secret, {
     algorithms: ["HS256"],
   });
-  const result = SessionPayloadSchema.safeParse(payload);
 
-  if (!result.success) {
-    throw new Error(`Invalid session token: ${result.error.message}`);
+  // jose already validates the expiry via "exp" - re-derive it here for local checks
+  if (!payload.sub) {
+    throw new Error("Invalid session token: missing subject");
   }
 
-  const session = result.data;
-
-  if (new Date(session.expiresAt) <= new Date()) {
-    throw new Error("Session expired");
+  const expiresAt = payload.exp ? new Date(payload.exp * 1000).toISOString() : undefined;
+  if (!expiresAt) {
+    throw new Error("Invalid session token: missing expiry");
   }
 
-  return session;
+  return {
+    userId: payload.sub,
+    expiresAt,
+  };
 };
 
 export const getSessionCookie = async (req: IncomingMessage) => {
@@ -108,7 +104,7 @@ export const setCookieSession = async (user: SessionPayload, res: ServerResponse
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
-    maxAge: Number(expiresInOneDay),
+    maxAge: 24 * 60 * 60,
     path: "/",
   });
 
