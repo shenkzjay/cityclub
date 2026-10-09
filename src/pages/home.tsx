@@ -66,6 +66,9 @@ export function HomePage() {
   const { data: players } = trpc.getPlayers.useQuery(undefined, {
     staleTime: ONE_HOUR,
   });
+  const { data: activeCompetition } = trpc.getActiveCompetition.useQuery(undefined, {
+    staleTime: ONE_HOUR,
+  });
 
   //pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -391,6 +394,15 @@ export function HomePage() {
             <p>Team D lost their spot at the top of the league! </p>
           </div> */}
         </div>
+      </section>
+
+      <section className="mx-6 md:w-[70vw] md:mx-auto flex flex-row flex-wrap items-center justify-between gap-4 text-[brown]">
+        <p className="font-semibold">
+          🏆 {activeCompetition?.name ?? "No active competition"}
+        </p>
+        <Link to="/history" className="text-sm underline hover:no-underline">
+          View competition history →
+        </Link>
       </section>
 
       <section className="mx-6 mt-20 md:w-[70vw] md:mx-auto ">

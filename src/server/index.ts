@@ -1,11 +1,36 @@
-import { router, publicProcedure } from "./trpc.js";
+import { router, publicProcedure, protectedProcedure } from "./trpc.js";
 import { db } from "../db/db.js";
-import { matchTable, playersTable, teamsTable, pointsTable, usersTable } from "../db/schema.js";
-import { eq, isNull } from "drizzle-orm";
+import {
+  competitionsTable,
+  matchTable,
+  playersTable,
+  teamsTable,
+  pointsTable,
+  usersTable,
+} from "../db/schema.js";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import z from "zod";
 import { compareHashedPassword, hashPassword, setCookieSession } from "../lib/session.js";
 
 // import "dotenv/config";
+
+async function findActiveCompetition() {
+  return (
+    (await db.get().query.competitionsTable.findFirst({
+      where: eq(competitionsTable.status, "active"),
+      orderBy: [desc(competitionsTable.createdAt)],
+    })) ?? null
+  );
+}
+
+async function resolveCompetitionId(competitionId?: number) {
+  if (competitionId) {
+    return competitionId;
+  }
+
+  const active = await findActiveCompetition();
+  return active?.id ?? null;
+}
 
 export const appRouter = router({
   getAdminSession: publicProcedure.query(async ({ ctx }) => {
@@ -16,10 +41,6 @@ export const appRouter = router({
     const users = await db.get().select().from(usersTable);
 
     return users;
-  }),
-
-  getUnassignedPlayers: publicProcedure.query(async () => {
-    return await db.get().select().from(playersTable).where(isNull(playersTable.teamId)); // ← only players without a team
   }),
 
   //signup
@@ -96,6 +117,140 @@ export const appRouter = router({
       return { message: "Login successful" };
     }),
 
+  // ---- competitions -------------------------------------------------------
+
+  getActiveCompetition: publicProcedure.query(async () => {
+    return findActiveCompetition();
+  }),
+
+  competitionsList: publicProcedure.query(async () => {
+    return db.get().query.competitionsTable.findMany({
+      orderBy: [desc(competitionsTable.createdAt)],
+      with: {
+        teams: { with: { score: true } },
+      },
+    });
+  }),
+
+  getCompetition: publicProcedure
+    .input(z.object({ competitionId: z.number().int().min(1) }))
+    .query(async ({ input }) => {
+      return db.get().query.competitionsTable.findFirst({
+        where: eq(competitionsTable.id, input.competitionId),
+        with: {
+          teams: { with: { players: true, score: true } },
+          matches: true,
+        },
+      });
+    }),
+
+  // Archives the current competition and starts a fresh one. Teams and players
+  // are carried forward, but every stat is reset to zero. Nothing is deleted.
+  competitionCreate: protectedProcedure
+    .input(z.object({ name: z.string().min(1).trim() }))
+    .mutation(async ({ input }) => {
+      const current = await findActiveCompetition();
+
+      const [newCompetition] = await db
+        .get()
+        .insert(competitionsTable)
+        .values({ name: input.name.trim(), status: "active" })
+        .returning();
+
+      if (!newCompetition) {
+        throw new Error("Failed to create competition");
+      }
+
+      if (current) {
+        // Archive the competition that is currently running.
+        await db
+          .get()
+          .update(competitionsTable)
+          .set({ status: "completed" })
+          .where(eq(competitionsTable.id, current.id));
+
+        // Carry teams forward with a fresh (zeroed) standings row each.
+        const oldTeams = await db.get().query.teamsTable.findMany({
+          where: eq(teamsTable.competitionId, current.id),
+        });
+
+        const teamIdMap = new Map<number, number>();
+
+        for (const team of oldTeams) {
+          const [newTeam] = await db
+            .get()
+            .insert(teamsTable)
+            .values({
+              teamName: team.teamName,
+              color: team.color,
+              description: team.description,
+              competitionId: newCompetition.id,
+            })
+            .returning();
+
+          if (!newTeam) {
+            continue;
+          }
+
+          teamIdMap.set(team.id, newTeam.id);
+
+          await db.get().insert(pointsTable).values({
+            teamId: newTeam.id,
+            competitionId: newCompetition.id,
+          });
+        }
+
+        // Carry players forward with zeroed stats, keeping their squad.
+        const oldPlayers = await db.get().query.playersTable.findMany({
+          where: eq(playersTable.competitionId, current.id),
+        });
+
+        for (const player of oldPlayers) {
+          await db.get().insert(playersTable).values({
+            playerName: player.playerName,
+            goals: 0,
+            assists: 0,
+            yellowCard: 0,
+            redCard: 0,
+            competitionId: newCompetition.id,
+            teamId: player.teamId ? teamIdMap.get(player.teamId) ?? null : null,
+          });
+        }
+      }
+
+      return newCompetition;
+    }),
+
+  // ---- players ------------------------------------------------------------
+
+  getUnassignedPlayers: publicProcedure
+    .input(z.object({ competitionId: z.number().int().optional() }).optional())
+    .query(async ({ input }) => {
+      const competitionId = await resolveCompetitionId(input?.competitionId);
+
+      if (!competitionId) {
+        return [];
+      }
+
+      return db.get().query.playersTable.findMany({
+        where: and(isNull(playersTable.teamId), eq(playersTable.competitionId, competitionId)),
+      });
+    }),
+
+  getPlayers: publicProcedure
+    .input(z.object({ competitionId: z.number().int().optional() }).optional())
+    .query(async ({ input }) => {
+      const competitionId = await resolveCompetitionId(input?.competitionId);
+
+      if (!competitionId) {
+        return [];
+      }
+
+      return db.get().query.playersTable.findMany({
+        where: eq(playersTable.competitionId, competitionId),
+      });
+    }),
+
   playerCreate: publicProcedure
     .input(
       z.object({
@@ -110,24 +265,76 @@ export const appRouter = router({
     .mutation(async (opts) => {
       const { input } = opts;
 
+      const active = await findActiveCompetition();
+
+      if (!active) {
+        throw new Error("No active competition. Create a competition first.");
+      }
+
       const existingPlayer = await db.get().query.playersTable.findFirst({
-        where: eq(playersTable.playerName, input.playerName.trim()),
+        where: and(
+          eq(playersTable.playerName, input.playerName.trim()),
+          eq(playersTable.competitionId, active.id)
+        ),
       });
 
       if (existingPlayer) {
-        throw new Error("The player with this name already exists.");
+        throw new Error("The player with this name already exists in this competition.");
       }
 
-      const [newPlayer] = await db.get().insert(playersTable).values(input).returning();
+      const [newPlayer] = await db
+        .get()
+        .insert(playersTable)
+        .values({ ...input, playerName: input.playerName.trim(), competitionId: active.id })
+        .returning();
 
       return newPlayer;
     }),
 
-  getPlayers: publicProcedure.query(async () => {
-    const players = await db.get().query.playersTable.findMany({});
+  playerUpdate: publicProcedure
+    .input(
+      z.object({
+        id: z.number().int().min(1),
+        playerName: z.string().min(1),
+        goals: z.number().int().min(0),
+        assists: z.number().int().min(0),
+        yellowCard: z.number().int().min(0),
+        redCard: z.number().int().min(0),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const { id, playerName, goals, assists, yellowCard, redCard } = input;
 
-    return players;
-  }),
+      const active = await findActiveCompetition();
+
+      const existingPlayer = await db.get().query.playersTable.findFirst({
+        where: eq(playersTable.id, id),
+      });
+
+      if (!existingPlayer) {
+        throw new Error("Player not found");
+      }
+
+      if (active && existingPlayer.competitionId !== active.id) {
+        throw new Error("This player belongs to an archived competition.");
+      }
+
+      await db
+        .get()
+        .update(playersTable)
+        .set({
+          playerName,
+          goals: existingPlayer.goals + goals,
+          assists: existingPlayer.assists + assists,
+          yellowCard: existingPlayer.yellowCard + yellowCard,
+          redCard: existingPlayer.redCard + redCard,
+        })
+        .where(eq(playersTable.id, id));
+
+      return { success: true };
+    }),
+
+  // ---- teams --------------------------------------------------------------
 
   teamCreate: publicProcedure
     .input(
@@ -142,14 +349,21 @@ export const appRouter = router({
       const { input } = opts;
       const { playerIds, ...teamData } = input;
 
-      console.log(input);
+      const active = await findActiveCompetition();
+
+      if (!active) {
+        throw new Error("No active competition. Create a competition first.");
+      }
 
       const existingTeam = await db.get().query.teamsTable.findFirst({
-        where: eq(teamsTable.teamName, input.teamName.trim()),
+        where: and(
+          eq(teamsTable.teamName, input.teamName.trim()),
+          eq(teamsTable.competitionId, active.id)
+        ),
       });
 
       if (existingTeam) {
-        throw new Error("A team with this name already exists.");
+        throw new Error("A team with this name already exists in this competition.");
       }
 
       const [newTeam] = await db
@@ -158,6 +372,7 @@ export const appRouter = router({
         .values({
           ...teamData,
           teamName: teamData.teamName.trim(),
+          competitionId: active.id,
         })
         .returning();
 
@@ -167,6 +382,7 @@ export const appRouter = router({
 
       await db.get().insert(pointsTable).values({
         teamId: newTeam.id,
+        competitionId: active.id,
       });
 
       // assign players to the team
@@ -183,52 +399,24 @@ export const appRouter = router({
       return newTeam;
     }),
 
-  getTeams: publicProcedure.query(async () => {
-    const teams = await db.get().query.teamsTable.findMany({
-      with: {
-        players: true,
-        score: true,
-      },
-    });
+  getTeams: publicProcedure
+    .input(z.object({ competitionId: z.number().int().optional() }).optional())
+    .query(async ({ input }) => {
+      const competitionId = await resolveCompetitionId(input?.competitionId);
 
-    return teams;
-  }),
-
-  playerUpdate: publicProcedure
-    .input(
-      z.object({
-        id: z.number().int().min(1),
-        playerName: z.string().min(1),
-        goals: z.number().int().min(0),
-        assists: z.number().int().min(0),
-        yellowCard: z.number().int().min(0),
-        redCard: z.number().int().min(0),
-      })
-    )
-    .mutation(async ({ input }) => {
-      const { id, playerName, goals, assists, yellowCard, redCard } = input;
-
-      const existingPlayer = await db.get().query.playersTable.findFirst({
-        where: eq(playersTable.id, id),
-      });
-
-      if (!existingPlayer) {
-        throw new Error("Player not found");
+      if (!competitionId) {
+        return [];
       }
 
-      await db
-        .get()
-        .update(playersTable)
-        .set({
-          playerName,
-          goals: existingPlayer.goals + goals,
-          assists: existingPlayer.assists + assists,
-          yellowCard: existingPlayer.yellowCard + yellowCard,
-          redCard: existingPlayer.redCard + redCard,
-        })
-        .where(eq(playersTable.id, id));
+      const teams = await db.get().query.teamsTable.findMany({
+        where: eq(teamsTable.competitionId, competitionId),
+        with: {
+          players: true,
+          score: true,
+        },
+      });
 
-      return { success: true };
+      return teams;
     }),
 
   updatePoints: publicProcedure
@@ -288,12 +476,23 @@ export const appRouter = router({
     )
     .mutation(async ({ input }) => {
       const { homeTeamId, awayTeamId, homeGoals, awayGoals, matchDate } = input;
+
+      const active = await findActiveCompetition();
+
+      if (!active) {
+        throw new Error("No active competition.");
+      }
+
       const [homeTeam, awayTeam] = await Promise.all([
         db.get().query.teamsTable.findFirst({ where: eq(teamsTable.id, homeTeamId) }),
         db.get().query.teamsTable.findFirst({ where: eq(teamsTable.id, awayTeamId) }),
       ]);
       if (!homeTeam || !awayTeam) {
         throw new Error("Team not found");
+      }
+
+      if (homeTeam.competitionId !== active.id || awayTeam.competitionId !== active.id) {
+        throw new Error("Both teams must belong to the active competition.");
       }
 
       //record the match
@@ -303,11 +502,20 @@ export const appRouter = router({
         homeGoals,
         awayGoals,
         matchDate,
+        competitionId: active.id,
       });
 
       const [homeStats, awayStats] = await Promise.all([
-        db.get().query.pointsTable.findFirst({ where: eq(pointsTable.teamId, homeTeamId) }),
-        db.get().query.pointsTable.findFirst({ where: eq(pointsTable.teamId, awayTeamId) }),
+        db
+          .get()
+          .query.pointsTable.findFirst({
+            where: and(eq(pointsTable.teamId, homeTeamId), eq(pointsTable.competitionId, active.id)),
+          }),
+        db
+          .get()
+          .query.pointsTable.findFirst({
+            where: and(eq(pointsTable.teamId, awayTeamId), eq(pointsTable.competitionId, active.id)),
+          }),
       ]);
 
       if (!homeStats || !awayStats) {
@@ -344,8 +552,16 @@ export const appRouter = router({
 
       // 4. Persist updates
       await Promise.all([
-        db.get().update(pointsTable).set(updatedHome).where(eq(pointsTable.teamId, homeTeamId)),
-        db.get().update(pointsTable).set(updatedAway).where(eq(pointsTable.teamId, awayTeamId)),
+        db
+          .get()
+          .update(pointsTable)
+          .set(updatedHome)
+          .where(and(eq(pointsTable.teamId, homeTeamId), eq(pointsTable.competitionId, active.id))),
+        db
+          .get()
+          .update(pointsTable)
+          .set(updatedAway)
+          .where(and(eq(pointsTable.teamId, awayTeamId), eq(pointsTable.competitionId, active.id))),
       ]);
     }),
 });

@@ -8,6 +8,13 @@
       "when": 1758997890694,
       "tag": "0000_sudden_justice",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791567430873,
+      "tag": "0001_competitions",
+      "breakpoints": true
     }
   ]
 }

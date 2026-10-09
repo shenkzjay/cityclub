@@ -48,6 +48,11 @@ export const AdminLayout = ({ children }: { children: React.ReactNode }) => {
                 Scores
               </Link>
             </li>
+            <li className=" hover:bg-[#262626] cursor-pointer flex">
+              <Link to={"/admin/competitions"} className=" w-full p-3 ">
+                Competitions
+              </Link>
+            </li>
           </ul>
         </div>
         <div className="w-full bg-[#262626]">{children}</div>
