@@ -1,10 +1,13 @@
-import { useMemo } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
 import { trpc } from "../client/trpc";
 
 export default function CompetitionPage() {
   const { competitionId } = useParams<{ competitionId: string }>();
   const id = Number(competitionId);
+  const [expandedTeamId, setExpandedTeamId] = useState<number | null>(null);
+  const [playerPage, setPlayerPage] = useState(1);
+  const playersPerPage = 10;
 
   const { data: competition, isLoading, isError } = trpc.getCompetition.useQuery(
     { competitionId: id },
@@ -27,6 +30,14 @@ export default function CompetitionPage() {
     });
   }, [competition?.teams]);
 
+  const totalPlayerPages = Math.max(1, Math.ceil(sortedPlayers.length / playersPerPage));
+  const currentPlayerPage = Math.min(playerPage, totalPlayerPages);
+  const startPlayerIndex = (currentPlayerPage - 1) * playersPerPage;
+  const paginatedPlayers = sortedPlayers.slice(
+    startPlayerIndex,
+    startPlayerIndex + playersPerPage
+  );
+
   const teamNameById = useMemo(() => {
     const map = new Map<number, string>();
     for (const team of competition?.teams ?? []) {
@@ -34,6 +45,15 @@ export default function CompetitionPage() {
     }
     return map;
   }, [competition?.teams]);
+
+  const sortPlayersByStats = (players: typeof sortedPlayers) => {
+    return [...players].sort((a, b) => {
+      if (b.goals !== a.goals) return b.goals - a.goals;
+      if (b.assists !== a.assists) return b.assists - a.assists;
+      if (b.yellowCard !== a.yellowCard) return b.yellowCard - a.yellowCard;
+      return b.redCard - a.redCard;
+    });
+  };
 
   if (isLoading) {
     return <div className="p-6">Loading competition...</div>;
@@ -82,24 +102,91 @@ export default function CompetitionPage() {
               <td className="px-3 py-2">GA-</td>
               <td className="px-3 py-2">GD+/-</td>
               <td className="px-3 py-2">PTS</td>
+              <td className="px-3 py-2"></td>
             </tr>
           </thead>
           <tbody>
             {sortedTeams.length > 0 ? (
-              sortedTeams.map((team, idx) => (
-                <tr key={team.id} className="odd:bg-[#f8f0ed] text-[brown] font-bold">
-                  <td className="px-3 py-4">{idx + 1}</td>
-                  <td className="px-3 py-4 text-nowrap">{team.teamName}</td>
-                  <td className="px-3 py-4">{team.score?.gamesPlayed ?? 0}</td>
-                  <td className="px-3 py-4">{team.score?.gamesWon ?? 0}</td>
-                  <td className="px-3 py-4">{team.score?.gamesLost ?? 0}</td>
-                  <td className="px-3 py-4">{team.score?.gamesDrawn ?? 0}</td>
-                  <td className="px-3 py-4">{team.score?.goalsFor ?? 0}</td>
-                  <td className="px-3 py-4">{team.score?.goalsAgainst ?? 0}</td>
-                  <td className="px-3 py-4">{team.score?.goalDifference ?? 0}</td>
-                  <td className="px-3 py-4">{team.score?.points ?? 0}</td>
-                </tr>
-              ))
+              sortedTeams.map((team, idx) => {
+                const isExpanded = expandedTeamId === team.id;
+                const teamPlayers = sortPlayersByStats(team.players ?? []);
+
+                return (
+                  <Fragment key={team.id}>
+                    <tr className="odd:bg-[#f8f0ed] text-[brown] font-bold">
+                      <td className="px-3 py-4">{idx + 1}</td>
+                      <td className="px-3 py-4 text-nowrap">{team.teamName}</td>
+                      <td className="px-3 py-4">{team.score?.gamesPlayed ?? 0}</td>
+                      <td className="px-3 py-4">{team.score?.gamesWon ?? 0}</td>
+                      <td className="px-3 py-4">{team.score?.gamesLost ?? 0}</td>
+                      <td className="px-3 py-4">{team.score?.gamesDrawn ?? 0}</td>
+                      <td className="px-3 py-4">{team.score?.goalsFor ?? 0}</td>
+                      <td className="px-3 py-4">{team.score?.goalsAgainst ?? 0}</td>
+                      <td className="px-3 py-4">{team.score?.goalDifference ?? 0}</td>
+                      <td className="px-3 py-4">{team.score?.points ?? 0}</td>
+                      <td className="px-3 py-4">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setExpandedTeamId((prev) => (prev === team.id ? null : team.id))
+                          }
+                          className="bg-[brown] hover:bg-[#8b3a1e] text-white font-bold text-xs uppercase px-3 py-2 rounded-lg"
+                        >
+                          {isExpanded ? "Hide players" : "View players"}
+                        </button>
+                      </td>
+                    </tr>
+                    {isExpanded && (
+                      <tr className="bg-[#fffaf7]">
+                        <td colSpan={11} className="px-4 py-4">
+                          <p className="text-sm font-bold text-[brown] mb-3">
+                            {team.teamName} — Squad ({teamPlayers.length})
+                          </p>
+                          {teamPlayers.length > 0 ? (
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-sm">
+                                <thead>
+                                  <tr className="text-[brown] font-bold">
+                                    <td className="px-3 py-2">No</td>
+                                    <td className="px-3 py-2">Name</td>
+                                    <td className="px-3 py-2 text-center">⚽️</td>
+                                    <td className="px-3 py-2 text-center">👟</td>
+                                    <td className="px-3 py-2 text-center">🟨</td>
+                                    <td className="px-3 py-2 text-center">🟥</td>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {teamPlayers.map((player, playerIdx) => (
+                                    <tr
+                                      key={player.id}
+                                      className="odd:bg-[#f8f0ed] text-[brown] font-bold"
+                                    >
+                                      <td className="px-3 py-2">{playerIdx + 1}</td>
+                                      <td className="px-3 py-2 text-nowrap">
+                                        {player.playerName}
+                                      </td>
+                                      <td className="px-3 py-2 text-center">{player.goals}</td>
+                                      <td className="px-3 py-2 text-center">{player.assists}</td>
+                                      <td className="px-3 py-2 text-center">
+                                        {player.yellowCard}
+                                      </td>
+                                      <td className="px-3 py-2 text-center">{player.redCard}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          ) : (
+                            <p className="text-sm text-gray-500">
+                              No players recorded for this team.
+                            </p>
+                          )}
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                );
+              })
             ) : (
               <tr>
                 <td>No teams recorded for this competition.</td>
@@ -124,10 +211,10 @@ export default function CompetitionPage() {
             </tr>
           </thead>
           <tbody>
-            {sortedPlayers.length > 0 ? (
-              sortedPlayers.map((player, idx) => (
+            {paginatedPlayers.length > 0 ? (
+              paginatedPlayers.map((player, idx) => (
                 <tr key={player.id} className="odd:bg-[#f8f0ed] text-[brown] font-bold">
-                  <td className="p-4">{idx + 1}</td>
+                  <td className="p-4">{startPlayerIndex + idx + 1}</td>
                   <td className="p-4">{player.playerName}</td>
                   <td className="p-4">{player.goals}</td>
                   <td className="p-4">{player.assists}</td>
@@ -143,6 +230,46 @@ export default function CompetitionPage() {
           </tbody>
         </table>
       </div>
+
+      {sortedPlayers.length > playersPerPage && (
+        <div className="flex flex-row flex-wrap items-center justify-between gap-4 mb-10">
+          <div className="flex flex-row flex-wrap gap-2 text-sm">
+            <button
+              type="button"
+              onClick={() => setPlayerPage(currentPlayerPage - 1)}
+              disabled={currentPlayerPage === 1}
+              className="bg-[#f8f0ed] text-[brown] font-bold px-3 py-1 rounded-lg disabled:opacity-40"
+            >
+              prev
+            </button>
+            {Array.from({ length: totalPlayerPages }, (_, i) => (
+              <button
+                key={i + 1}
+                type="button"
+                onClick={() => setPlayerPage(i + 1)}
+                className={`font-bold px-3 py-1 rounded-lg ${
+                  currentPlayerPage === i + 1
+                    ? "bg-[brown] text-white"
+                    : "bg-[#f8f0ed] text-[brown]"
+                }`}
+              >
+                {i + 1}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => setPlayerPage(currentPlayerPage + 1)}
+              disabled={currentPlayerPage === totalPlayerPages}
+              className="bg-[#f8f0ed] text-[brown] font-bold px-3 py-1 rounded-lg disabled:opacity-40"
+            >
+              next
+            </button>
+          </div>
+          <p className="text-sm text-[brown] font-bold">
+            Pages {currentPlayerPage}/{totalPlayerPages}
+          </p>
+        </div>
+      )}
 
       {/* Results */}
       <h2 className="text-xl font-bold mb-4">Results</h2>
