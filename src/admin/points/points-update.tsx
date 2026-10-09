@@ -84,11 +84,11 @@ export default function PointsUpdate() {
 
   return (
     <AdminLayout>
-      <section className="p-6">
+      <section className="p-4 sm:p-6">
         <div>
           <h3 className="text-2xl font-bold mb-6">Record Match Result</h3>
           <div className="flex mt-6">
-            <div className="flex flex-row w-1/2 gap-4">
+            <div className="flex flex-col sm:flex-row w-full lg:w-1/2 gap-4">
               {/* Home Team */}
               <div className="bg-[#333] w-full p-4 flex flex-col items-center gap-6 rounded-2xl">
                 <div className="flex flex-col gap-6 items-center">
@@ -188,7 +188,7 @@ export default function PointsUpdate() {
           </div>
 
           {/* Action Buttons */}
-          <div className="mt-6 flex gap-4">
+          <div className="mt-6 flex flex-wrap gap-4">
             {isEditing ? (
               <>
                 <button
@@ -216,7 +216,8 @@ export default function PointsUpdate() {
           </div>
         </div>
 
-        <table className="w-full mt-6">
+        <div className="w-full overflow-x-auto mt-6">
+        <table className="w-full whitespace-nowrap">
           <thead>
             <td className="px-3 py-2">Pos</td>
             <td className="px-3 py-2">Team</td>
@@ -249,6 +250,7 @@ export default function PointsUpdate() {
               : ""}
           </tbody>
         </table>
+        </div>
       </section>
     </AdminLayout>
   );

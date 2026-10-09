@@ -15,6 +15,7 @@ import AdminSignIn from "./admin/sign-in/index.tsx";
 import { TRPCProvider } from "./provider.tsx";
 import SignUp from "./admin/signup/index.tsx";
 import CompetitionsAdmin from "./admin/competitions/index.tsx";
+import { RequireAdmin } from "./admin/require-admin.tsx";
 
 const root = document.getElementById("root")!;
 
@@ -25,7 +26,14 @@ ReactDOM.createRoot(root).render(
         <Route path="/" element={<App />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="/signin" element={<AdminSignIn />} />
-        <Route path="/signup" element={<SignUp />} />
+        <Route
+          path="/signup"
+          element={
+            <RequireAdmin>
+              <SignUp />
+            </RequireAdmin>
+          }
+        />
         <Route path="/admin/teams/create-teams" element={<CreateTeamsComponent />} />
         <Route path="/admin/players/create-players" element={<CreatePlayersComponent />} />
         <Route path="/admin/points/points-update" element={<PointsUpdate />} />

@@ -60,8 +60,8 @@ export const appRouter = router({
     return users;
   }),
 
-  //signup
-  userSignUp: publicProcedure
+  //signup (restricted to signed-in admins)
+  userSignUp: protectedProcedure
     .input(
       z.object({
         username: z.string().min(1).trim(),

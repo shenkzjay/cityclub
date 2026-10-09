@@ -99,7 +99,7 @@ export const AdminLayout = ({ children }: { children: React.ReactNode }) => {
           </div>
         </aside>
 
-        <div className="w-full bg-[#262626] pt-16 lg:pt-0">{children}</div>
+        <div className="w-full min-w-0 bg-[#262626] pt-16 lg:pt-0">{children}</div>
       </div>
     </TRPCProvider>
   );

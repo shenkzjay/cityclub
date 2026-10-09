@@ -49,8 +49,8 @@ export default function CompetitionsAdmin() {
 
   return (
     <AdminLayout>
-      <section className="flex gap-12 p-6 text-white">
-        <section className="w-1/2">
+      <section className="flex flex-col lg:flex-row gap-8 lg:gap-12 p-4 sm:p-6 text-white">
+        <section className="w-full lg:w-1/2">
           <h3 className="text-2xl font-bold mb-2">Start a new competition</h3>
           <p className="text-sm text-slate-400 mb-6">
             The current active competition is archived (never deleted) and its teams and players are
@@ -87,9 +87,10 @@ export default function CompetitionsAdmin() {
           </form>
         </section>
 
-        <section className="w-1/2">
+        <section className="w-full lg:w-1/2 min-w-0">
           <h3 className="text-2xl font-bold mb-6">All competitions</h3>
-          <table className="w-full text-left text-sm">
+          <div className="w-full overflow-x-auto">
+          <table className="w-full text-left text-sm whitespace-nowrap">
             <thead>
               <tr>
                 <th className="px-3 py-2">#</th>
@@ -131,6 +132,7 @@ export default function CompetitionsAdmin() {
               )}
             </tbody>
           </table>
+          </div>
         </section>
       </section>
     </AdminLayout>

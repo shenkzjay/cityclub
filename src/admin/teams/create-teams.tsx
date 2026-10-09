@@ -85,8 +85,8 @@ export const CreateTeamsComponent = () => {
 
   return (
     <AdminLayout>
-      <section className="flex gap-12 p-6">
-        <form className="w-1/2 flex flex-col" onSubmit={handleSubmitTeam}>
+      <section className="flex flex-col lg:flex-row gap-8 lg:gap-12 p-4 sm:p-6">
+        <form className="w-full lg:w-1/2 flex flex-col" onSubmit={handleSubmitTeam}>
           <fieldset className="grid gap-6 mb-6 border p-6 rounded-xl">
             <legend>Create teams</legend>
 
@@ -166,7 +166,7 @@ export const CreateTeamsComponent = () => {
               )}
             </div>
 
-            <div className="flex flex-row gap-6" onClick={handleSelect}>
+            <div className="flex flex-row flex-wrap gap-4 sm:gap-6" onClick={handleSelect}>
               <label
                 htmlFor="red"
                 className={` ${
@@ -242,9 +242,10 @@ export const CreateTeamsComponent = () => {
           </fieldset>
         </form>
 
-        <section className="w-1/2 ">
+        <section className="w-full lg:w-1/2">
           <h3>Team list</h3>
-          <table className="w-full  text-left">
+          <div className="w-full overflow-x-auto">
+            <table className="w-full text-left whitespace-nowrap">
             <thead>
               <tr>
                 <th className=" px-3 py-2">ID</th>
@@ -273,7 +274,8 @@ export const CreateTeamsComponent = () => {
                 </tr>
               )}
             </tbody>
-          </table>
+            </table>
+          </div>
         </section>
       </section>
     </AdminLayout>

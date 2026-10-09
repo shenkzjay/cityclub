@@ -33,8 +33,11 @@ export default function SignUp() {
   };
 
   return (
-    <form className="flex justify-center items-center h-[70vh]" onSubmit={handleSubmit}>
-      <fieldset className="text-black p-6 bg-slate-100 rounded-xl flex flex-col gap-4">
+    <form
+      className="flex justify-center items-center h-[70vh] px-4"
+      onSubmit={handleSubmit}
+    >
+      <fieldset className="text-black p-6 bg-slate-100 rounded-xl flex flex-col gap-4 w-full max-w-sm">
         <legend>Sign up</legend>
         <div>
           <label htmlFor="email" className="sr-only">

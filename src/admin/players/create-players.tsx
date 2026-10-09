@@ -116,8 +116,8 @@ export const CreatePlayersComponent = () => {
 
   return (
     <AdminLayout>
-      <section className="flex flex-row p-6 gap-12">
-        <section className="w-1/3">
+      <section className="flex flex-col lg:flex-row p-4 sm:p-6 gap-8 lg:gap-12">
+        <section className="w-full lg:w-1/3">
           <form onSubmit={handleSubmit}>
             <fieldset className="grid gap-6 mb-6 border p-6 rounded-xl">
               <legend className="">Create players</legend>
@@ -202,10 +202,11 @@ export const CreatePlayersComponent = () => {
             </fieldset>
           </form>
         </section>
-        <section className="w-2/3">
+        <section className="w-full lg:w-2/3 min-w-0">
           <h3>List of players</h3>
 
-          <table className="w-full text-sm ">
+          <div className="w-full overflow-x-auto">
+          <table className="w-full text-sm whitespace-nowrap">
             <thead className="w-full ">
               <tr>
                 <td className="px-4 py-2">S/N</td>
@@ -287,8 +288,9 @@ export const CreatePlayersComponent = () => {
               )}
             </tbody>
           </table>
-          <div className="w-full  flex flex-row justify-between items-center  mt-6  ">
-            <div className="flex flex-row gap-2 text-sm">
+          </div>
+          <div className="w-full  flex flex-wrap gap-4 justify-between items-center  mt-6  ">
+            <div className="flex flex-row flex-wrap gap-2 text-sm">
               <button onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1}>
                 prev
               </button>

@@ -41,9 +41,9 @@ export function SignIn() {
   };
 
   return (
-    <section className="flex justify-center items-center h-[80vh]">
-      <form className="text-black p-6" onSubmit={handleSubmit}>
-        <fieldset className=" p-6 flex flex-col gap-4 bg-slate-100 rounded-lg">
+    <section className="flex justify-center items-center h-[80vh] px-4">
+      <form className="text-black p-6 w-full max-w-sm" onSubmit={handleSubmit}>
+        <fieldset className=" p-6 flex flex-col gap-4 bg-slate-100 rounded-lg w-full">
           <legend>Sign in</legend>
 
           <div>
