@@ -4,24 +4,22 @@ import { trpc } from "../client/trpc";
 import { useEffect } from "react";
 
 export const AdminLayout = ({ children }: { children: React.ReactNode }) => {
-  // const navigate = useNavigate();
-  // const { data: userSession, isLoading } = trpc.getAdminSession.useQuery();
+  const navigate = useNavigate();
+  const { data: userSession, isLoading } = trpc.getAdminSession.useQuery();
 
-  // console.log({ userSession });
+  useEffect(() => {
+    if (!isLoading && !userSession) {
+      navigate("/signin");
+    }
+  }, [userSession, isLoading, navigate]);
 
-  // useEffect(() => {
-  //   if (!isLoading && !userSession) {
-  //     navigate("/signin");
-  //   }
-  // }, [userSession, isLoading, navigate]);
+  if (isLoading) {
+    return <div>Loading session...</div>;
+  }
 
-  // if (isLoading) {
-  //   return <div>Loading session...</div>;
-  // }
-
-  // if (!userSession) {
-  //   return null; // Or a loading spinner, or redirect immediately
-  // }
+  if (!userSession) {
+    return null;
+  }
 
   return (
     <TRPCProvider>

@@ -1,9 +1,12 @@
+import { useNavigate } from "react-router";
 import { trpc } from "../../client/trpc";
 
 export function SignIn() {
+  const navigate = useNavigate();
+
   const userLogin = trpc.userLogin.useMutation({
     onSuccess: () => {
-      console.log("Login successful");
+      navigate("/admin");
     },
 
     onError: () => {

@@ -4,7 +4,7 @@ import * as jose from "jose";
 import type { IncomingMessage, ServerResponse } from "http";
 import { parse, serialize } from "cookie";
 
-const secret = new TextEncoder().encode("city_club_league");
+const secret = new TextEncoder().encode(process.env.SESSION_SECRET ?? "city_club_league");
 
 const alg = "HS256";
 

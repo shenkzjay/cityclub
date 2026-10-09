@@ -1,6 +1,6 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import { db } from "../db/db.js";
-import { getSessionCookie, SessionPayload } from "../lib/session.js";
+import { getSessionCookie } from "../lib/session.js";
 
 import type { NodeHTTPCreateContextFnOptions } from "@trpc/server/adapters/node-http";
 import type { IncomingMessage, ServerResponse } from "http";

@@ -34,11 +34,23 @@ async function resolveCompetitionId(competitionId?: number) {
 
 export const appRouter = router({
   getAdminSession: publicProcedure.query(async ({ ctx }) => {
-    return ctx.user;
+    if (!ctx.user) {
+      return null;
+    }
+
+    const { id, username, email } = ctx.user;
+    return { id, username, email };
   }),
 
-  getUsers: publicProcedure.query(async () => {
-    const users = await db.get().select().from(usersTable);
+  getUsers: protectedProcedure.query(async () => {
+    const users = await db
+      .get()
+      .select({
+        id: usersTable.id,
+        username: usersTable.username,
+        email: usersTable.email,
+      })
+      .from(usersTable);
 
     return users;
   }),
@@ -223,7 +235,7 @@ export const appRouter = router({
 
   // ---- players ------------------------------------------------------------
 
-  getUnassignedPlayers: publicProcedure
+  getUnassignedPlayers: protectedProcedure
     .input(z.object({ competitionId: z.number().int().optional() }).optional())
     .query(async ({ input }) => {
       const competitionId = await resolveCompetitionId(input?.competitionId);
@@ -251,7 +263,7 @@ export const appRouter = router({
       });
     }),
 
-  playerCreate: publicProcedure
+  playerCreate: protectedProcedure
     .input(
       z.object({
         playerName: z.string().min(1),
@@ -291,7 +303,7 @@ export const appRouter = router({
       return newPlayer;
     }),
 
-  playerUpdate: publicProcedure
+  playerUpdate: protectedProcedure
     .input(
       z.object({
         id: z.number().int().min(1),
@@ -336,7 +348,7 @@ export const appRouter = router({
 
   // ---- teams --------------------------------------------------------------
 
-  teamCreate: publicProcedure
+  teamCreate: protectedProcedure
     .input(
       z.object({
         teamName: z.string().min(1, "Team name is required"),
@@ -419,52 +431,7 @@ export const appRouter = router({
       return teams;
     }),
 
-  updatePoints: publicProcedure
-    .input(
-      z.object({
-        homeTeamId: z.number().int().min(1),
-        awayTeamId: z.number().int().min(1),
-        homeTeamName: z.string().min(1),
-        awayTeamName: z.string().min(1),
-        homeTeamScore: z.number().int().min(0),
-        awayTeamScore: z.number().int().min(0),
-      })
-    )
-    .mutation(async ({ input }) => {
-      const { homeTeamId, awayTeamId, homeTeamName, awayTeamName, homeTeamScore, awayTeamScore } =
-        input;
-
-      // Update team names
-      await db
-        .get()
-        .update(teamsTable)
-        .set({ teamName: homeTeamName })
-        .where(eq(teamsTable.id, homeTeamId));
-
-      await db
-        .get()
-        .update(teamsTable)
-        .set({ teamName: awayTeamName })
-        .where(eq(teamsTable.id, awayTeamId));
-
-      // Update team scores
-      await db
-        .get()
-        .update(pointsTable)
-        .set({ goalsFor: homeTeamScore })
-        .where(eq(pointsTable.teamId, homeTeamId));
-
-      await db
-        .get()
-        .update(pointsTable)
-        .set({ goalsFor: awayTeamScore })
-        .where(eq(pointsTable.teamId, awayTeamId));
-
-      console.log({ input });
-      return input;
-    }),
-
-  recordMatchScores: publicProcedure
+  recordMatchScores: protectedProcedure
     .input(
       z.object({
         homeTeamId: z.number(),
