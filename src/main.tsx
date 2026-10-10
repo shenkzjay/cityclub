@@ -1,60 +1,15 @@
 import ReactDOM from "react-dom/client";
 import "./index.css";
-import App from "./App.tsx";
-import { BrowserRouter, Routes, Route } from "react-router";
-import { CreateTeamsComponent } from "./admin/teams/create-teams.tsx";
-import Admin from "./admin/index.tsx";
-import CreatePlayersComponent from "./admin/players/create-players.tsx";
-import PointsUpdate from "./admin/points/points-update.tsx";
-import NewsPage from "./pages/news-page.tsx";
-import TeamPage from "./pages/team-page.tsx";
-import HistoryPage from "./pages/history-page.tsx";
-import CompetitionPage from "./pages/competition-page.tsx";
-import AdminSignIn from "./admin/sign-in/index.tsx";
-
+import { BrowserRouter } from "react-router";
 import { TRPCProvider } from "./provider.tsx";
-import SignUp from "./admin/signup/index.tsx";
-import CompetitionsAdmin from "./admin/competitions/index.tsx";
-import NewsAdmin from "./admin/news/index.tsx";
-import FixturesAdmin from "./admin/fixtures/index.tsx";
-import PredictionsAdmin from "./admin/predictions/index.tsx";
-import PredictPage from "./pages/predict-page.tsx";
-import TotwPage from "./pages/totw-page.tsx";
-import TotwAdmin from "./admin/totw/index.tsx";
-import { RequireAdmin } from "./admin/require-admin.tsx";
+import { RootLayout } from "./components/RootLayout";
 
 const root = document.getElementById("root")!;
 
 ReactDOM.createRoot(root).render(
   <BrowserRouter>
     <TRPCProvider>
-      <Routes>
-        <Route path="/" element={<App />} />
-        <Route path="/admin" element={<Admin />} />
-        <Route path="/signin" element={<AdminSignIn />} />
-        <Route
-          path="/signup"
-          element={
-            <RequireAdmin>
-              <SignUp />
-            </RequireAdmin>
-          }
-        />
-        <Route path="/admin/teams/create-teams" element={<CreateTeamsComponent />} />
-        <Route path="/admin/players/create-players" element={<CreatePlayersComponent />} />
-        <Route path="/admin/points/points-update" element={<PointsUpdate />} />
-        <Route path="/admin/competitions" element={<CompetitionsAdmin />} />
-        <Route path="/admin/news" element={<NewsAdmin />} />
-        <Route path="/admin/fixtures" element={<FixturesAdmin />} />
-        <Route path="/admin/predictions" element={<PredictionsAdmin />} />
-        <Route path="/admin/totw" element={<TotwAdmin />} />
-        <Route path="/predict" element={<PredictPage />} />
-        <Route path="/news/:slug" element={<NewsPage />} />
-        <Route path="/teams/:teamName" element={<TeamPage />} />
-        <Route path="/history" element={<HistoryPage />} />
-        <Route path="/history/:competitionId" element={<CompetitionPage />} />
-        <Route path="/totw" element={<TotwPage />} />
-      </Routes>
+      <RootLayout />
     </TRPCProvider>
   </BrowserRouter>
 );

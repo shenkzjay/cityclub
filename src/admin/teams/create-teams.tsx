@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { trpc } from "../../client/trpc";
+import { PageLoader } from "../../components/PageLoader";
 import { AdminLayout } from "../layout";
 
 export const CreateTeamsComponent = () => {
@@ -18,11 +19,12 @@ export const CreateTeamsComponent = () => {
     },
   });
 
-  const { data: teams } = trpc.getTeams.useQuery();
+  const { data: teams, isLoading: teamsLoading } = trpc.getTeams.useQuery();
 
-  const { data: unassignedPlayers } = trpc.getUnassignedPlayers.useQuery();
+  const { data: unassignedPlayers, isLoading: unassignedLoading } =
+    trpc.getUnassignedPlayers.useQuery();
 
-  const { data: players } = trpc.getPlayers.useQuery();
+  const { data: players, isLoading: playersLoading } = trpc.getPlayers.useQuery();
 
   const [selectedPlayers, setSelectedPlayers] = useState<number[]>([]);
 
@@ -82,6 +84,14 @@ export const CreateTeamsComponent = () => {
       console.error(error);
     }
   };
+
+  if (teamsLoading || unassignedLoading || playersLoading) {
+    return (
+      <AdminLayout>
+        <PageLoader invert label="Loading teams…" />
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>

@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { keepPreviousData } from "@tanstack/react-query";
 import { AdminLayout } from "../layout";
 import { trpc } from "../../client/trpc";
 import { formatKickoff, type FixtureDto } from "../../lib/fixtures";
@@ -24,7 +25,9 @@ export default function PointsUpdate() {
     data: fixtures = [],
     isError: fixturesError,
     isLoading: fixturesLoading,
-  } = trpc.getFixtures.useQuery();
+  } = trpc.getFixtures.useQuery(undefined, {
+    placeholderData: keepPreviousData,
+  });
   const { data: teams = [] } = trpc.getTeams.useQuery();
 
   const selectedFixture = useMemo(

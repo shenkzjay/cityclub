@@ -8,6 +8,7 @@ export interface TotwPlayerDto {
   assists: number;
   yellowCard: number;
   redCard: number;
+  isCaptain?: boolean;
   team: { id: number; teamName: string; color: string } | null;
 }
 
@@ -22,22 +23,7 @@ export interface TeamOfTheWeekDto {
   midfielder: TotwPlayerDto | null;
   forwardOne: TotwPlayerDto | null;
   forwardTwo: TotwPlayerDto | null;
-  subOne: TotwPlayerDto | null;
-  subTwo: TotwPlayerDto | null;
-  subThree: TotwPlayerDto | null;
-  subFour: TotwPlayerDto | null;
 }
-
-type PlayerSlotKey =
-  | "defenderOne"
-  | "defenderTwo"
-  | "midfielder"
-  | "forwardOne"
-  | "forwardTwo"
-  | "subOne"
-  | "subTwo"
-  | "subThree"
-  | "subFour";
 
 type PositionKey = "defenderOne" | "defenderTwo" | "midfielder" | "forwardOne" | "forwardTwo";
 
@@ -47,13 +33,6 @@ const STARTER_SLOTS: { key: PositionKey; position: string; left: string; top: st
   { key: "midfielder", position: "MF", left: "50%", top: "46%" },
   { key: "defenderOne", position: "DF", left: "27%", top: "72%" },
   { key: "defenderTwo", position: "DF", left: "73%", top: "72%" },
-];
-
-const SUB_SLOTS: PlayerSlotKey[] = [
-  "subOne",
-  "subTwo",
-  "subThree",
-  "subFour",
 ];
 
 function PlayerTile({
@@ -102,6 +81,11 @@ function PlayerTile({
         }`}
       >
         {player.playerName}
+        {player.isCaptain && (
+          <span className="ml-1 inline-flex items-center justify-center bg-white text-black text-[8px] font-black rounded-full w-3.5 h-3.5 align-middle">
+            C
+          </span>
+        )}
       </span>
       {!compact && (
         <span className="text-[9px] font-semibold text-white/85 bg-black/30 rounded-full px-1.5">
@@ -178,23 +162,6 @@ export function TeamOfTheWeekPitch({
             <PlayerTile player={teamOfTheWeek[slot.key]} position={slot.position} compact={compact} />
           </div>
         ))}
-      </div>
-
-      <div className="mt-4">
-        <div className="flex items-center justify-center gap-2 mb-3">
-          <span className="h-px w-12 bg-white/60" />
-          <p className="text-[10px] font-bold uppercase tracking-widest text-white bg-[#4a7c59] rounded-full px-3 py-1">
-            Substitutes
-          </p>
-          <span className="h-px w-12 bg-white/60" />
-        </div>
-        <div className="grid grid-cols-4 gap-2">
-          {SUB_SLOTS.map((slot) => (
-            <div key={slot}>
-              <PlayerTile player={teamOfTheWeek[slot]} position="SUB" compact={compact} />
-            </div>
-          ))}
-        </div>
       </div>
     </div>
     </div>

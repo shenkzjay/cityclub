@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { AdminLayout } from "../layout";
 import { trpc } from "../../client/trpc";
+import { PageLoader } from "../../components/PageLoader";
 import {
   TeamOfTheWeekPitch,
   type TeamOfTheWeekDto,
@@ -12,11 +13,7 @@ type SlotKey =
   | "defenderTwoId"
   | "midfielderId"
   | "forwardOneId"
-  | "forwardTwoId"
-  | "subOneId"
-  | "subTwoId"
-  | "subThreeId"
-  | "subFourId";
+  | "forwardTwoId";
 
 const SLOTS: { key: SlotKey; label: string }[] = [
   { key: "defenderOneId", label: "Defender 1" },
@@ -24,10 +21,6 @@ const SLOTS: { key: SlotKey; label: string }[] = [
   { key: "midfielderId", label: "Midfielder 1" },
   { key: "forwardOneId", label: "Forward 1" },
   { key: "forwardTwoId", label: "Forward 2" },
-  { key: "subOneId", label: "Substitute 1" },
-  { key: "subTwoId", label: "Substitute 2" },
-  { key: "subThreeId", label: "Substitute 3" },
-  { key: "subFourId", label: "Substitute 4" },
 ];
 
 const EMPTY_VALUES: Record<SlotKey, number | ""> = {
@@ -36,19 +29,16 @@ const EMPTY_VALUES: Record<SlotKey, number | ""> = {
   midfielderId: "",
   forwardOneId: "",
   forwardTwoId: "",
-  subOneId: "",
-  subTwoId: "",
-  subThreeId: "",
-  subFourId: "",
 };
 
 export default function TotwAdmin() {
   const utils = trpc.useUtils();
 
-  const { data: teams = [] } = trpc.getTeams.useQuery();
-  const { data: players = [] } = trpc.getPlayers.useQuery();
-  const { data: totw } = trpc.getTeamOfTheWeek.useQuery();
-  const { data: activeCompetition } = trpc.getActiveCompetition.useQuery();
+  const { data: teams = [], isLoading: teamsLoading } = trpc.getTeams.useQuery();
+  const { data: players = [], isLoading: playersLoading } = trpc.getPlayers.useQuery();
+  const { data: totw, isLoading: totwLoading } = trpc.getTeamOfTheWeek.useQuery();
+  const { data: activeCompetition, isLoading: competitionLoading } =
+    trpc.getActiveCompetition.useQuery();
 
   const [values, setValues] = useState<Record<SlotKey, number | "">>(EMPTY_VALUES);
   const [weekLabel, setWeekLabel] = useState("");
@@ -61,10 +51,6 @@ export default function TotwAdmin() {
       midfielderId: totw.midfielder?.id ?? "",
       forwardOneId: totw.forwardOne?.id ?? "",
       forwardTwoId: totw.forwardTwo?.id ?? "",
-      subOneId: totw.subOne?.id ?? "",
-      subTwoId: totw.subTwo?.id ?? "",
-      subThreeId: totw.subThree?.id ?? "",
-      subFourId: totw.subFour?.id ?? "",
     });
     setWeekLabel(totw.weekLabel ?? "");
   }, [totw]);
@@ -121,10 +107,6 @@ export default function TotwAdmin() {
     midfielder: previewById.get(values.midfielderId as number) ?? null,
     forwardOne: previewById.get(values.forwardOneId as number) ?? null,
     forwardTwo: previewById.get(values.forwardTwoId as number) ?? null,
-    subOne: previewById.get(values.subOneId as number) ?? null,
-    subTwo: previewById.get(values.subTwoId as number) ?? null,
-    subThree: previewById.get(values.subThreeId as number) ?? null,
-    subFour: previewById.get(values.subFourId as number) ?? null,
   };
 
   const hasAnySelection = SLOTS.some((slot) => values[slot.key] !== "");
@@ -146,12 +128,16 @@ export default function TotwAdmin() {
       midfielderId: values.midfielderId === "" ? null : (values.midfielderId as number),
       forwardOneId: values.forwardOneId === "" ? null : (values.forwardOneId as number),
       forwardTwoId: values.forwardTwoId === "" ? null : (values.forwardTwoId as number),
-      subOneId: values.subOneId === "" ? null : (values.subOneId as number),
-      subTwoId: values.subTwoId === "" ? null : (values.subTwoId as number),
-      subThreeId: values.subThreeId === "" ? null : (values.subThreeId as number),
-      subFourId: values.subFourId === "" ? null : (values.subFourId as number),
     });
   };
+
+  if (teamsLoading || playersLoading || totwLoading || competitionLoading) {
+    return (
+      <AdminLayout>
+        <PageLoader invert label="Loading squad…" />
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>
@@ -160,7 +146,7 @@ export default function TotwAdmin() {
           <div>
             <h3 className="text-2xl font-bold">Team of the Week</h3>
             <p className="text-sm text-slate-400 mt-1">
-              Pick the 5 starters (2-1-2) and 4 substitutes for{" "}
+              Pick the 5 starters (2-1-2) for{" "}
               {activeCompetition?.name ?? "the active competition"}.
             </p>
           </div>

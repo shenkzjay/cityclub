@@ -172,6 +172,11 @@ export default function CompetitionPage() {
                                       <td className="px-3 py-2">{playerIdx + 1}</td>
                                       <td className="px-3 py-2 text-nowrap">
                                         {player.playerName}
+                                        {player.isCaptain && (
+                                          <span className="ml-2 bg-[brown] text-white text-[10px] font-bold rounded-full px-1.5 py-0.5">
+                                            C
+                                          </span>
+                                        )}
                                       </td>
                                       <td className="px-3 py-2 text-center">{player.goals}</td>
                                       <td className="px-3 py-2 text-center">{player.assists}</td>
@@ -223,7 +228,14 @@ export default function CompetitionPage() {
               paginatedPlayers.map((player, idx) => (
                 <tr key={player.id} className="odd:bg-[#f8f0ed] text-[brown] font-bold">
                   <td className="p-4">{startPlayerIndex + idx + 1}</td>
-                  <td className="p-4">{player.playerName}</td>
+                  <td className="p-4 text-nowrap">
+                    {player.playerName}
+                    {player.isCaptain && (
+                      <span className="ml-2 bg-[brown] text-white text-[10px] font-bold rounded-full px-1.5 py-0.5">
+                        C
+                      </span>
+                    )}
+                  </td>
                   <td className="p-4">{player.goals}</td>
                   <td className="p-4">{player.assists}</td>
                   <td className="p-4">{player.yellowCard}</td>

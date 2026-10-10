@@ -2,20 +2,29 @@ import { useState, type FormEvent } from "react";
 import { Link } from "react-router";
 import { trpc } from "../client/trpc";
 import {
-  formatKickoff,
+  formatDeadline,
   getSubmittedName,
-  isFixtureOpen,
   rememberSubmittedName,
   type FixtureDto,
 } from "../lib/fixtures";
+import { buildRoastMessage, pickUnluckiest } from "../lib/roast";
 
-export function PredictCard({ match }: { match: FixtureDto }) {
+export function PredictCard({
+  match,
+  showRoast = false,
+  predictable = false,
+}: {
+  match: FixtureDto;
+  showRoast?: boolean;
+  predictable?: boolean;
+}) {
   const final = match.status === "final";
-  const open = isFixtureOpen(match);
+  const open = predictable;
 
   const [name, setName] = useState("");
   const [homeGoals, setHomeGoals] = useState(0);
   const [awayGoals, setAwayGoals] = useState(0);
+  const [copied, setCopied] = useState(false);
   const [submittedName, setSubmittedName] = useState<string | null>(() =>
     getSubmittedName(match.id)
   );
@@ -27,6 +36,38 @@ export function PredictCard({ match }: { match: FixtureDto }) {
     { matchId: match.id },
     { enabled: final }
   );
+
+  const settled = final && (predictionData?.settled ?? false);
+  const winnerEntry = predictionData?.entries.find((entry) => entry.status === "won") ?? null;
+  const unluckiest = predictionData
+    ? pickUnluckiest(predictionData.entries, match.homeGoals, match.awayGoals)
+    : null;
+  const roastMessage = buildRoastMessage({
+    match,
+    winner: winnerEntry,
+    unluckiest,
+  });
+
+  const handleCopyRoast = async () => {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(roastMessage);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = roastMessage;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+      }
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      alert(`Could not copy. Please copy manually:\n\n${roastMessage}`);
+    }
+  };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -71,7 +112,7 @@ export function PredictCard({ match }: { match: FixtureDto }) {
       </p>
 
       <p className="text-xs font-semibold text-[#62381d]/70">
-        {final ? "Final result" : open ? `Closes ${formatKickoff(match)}` : "Predictions closed"}
+        {final ? "Final result" : open ? `Closes ${formatDeadline(match)}` : "Predictions closed"}
       </p>
 
       {final ? (
@@ -79,15 +120,29 @@ export function PredictCard({ match }: { match: FixtureDto }) {
           <p className="font-black text-xl text-[#62381d]">
             {match.homeGoals} - {match.awayGoals}
           </p>
-          {predictionData?.winner ? (
-            <p>
-              🏆 Winner:{" "}
-              <span className="font-bold">{predictionData.winner.playerName}</span>
-            </p>
+          {settled ? (
+            predictionData?.winner ? (
+              <p>
+                🏆 Winner:{" "}
+                <span className="font-bold">{predictionData.winner.playerName}</span>
+              </p>
+            ) : (
+              <p className="text-[#62381d]/70">
+                No eligible entry matched the exact score — prize not awarded.
+              </p>
+            )
           ) : (
-            <p className="text-[#62381d]/70">
-              No eligible entry matched the exact score — prize not awarded.
-            </p>
+            <p className="text-[#62381d]/70">Awaiting settlement…</p>
+          )}
+
+          {settled && showRoast && predictionData && (
+            <button
+              type="button"
+              onClick={handleCopyRoast}
+              className="mt-1 self-start bg-[#62381d] text-[#f8f0ed] font-bold text-sm rounded-lg px-4 py-2 hover:opacity-90 cursor-pointer"
+            >
+              {copied ? "Copied! ✅" : "📋 Copy Roast"}
+            </button>
           )}
         </div>
       ) : open ? (

@@ -2,12 +2,16 @@ import { useState, type FormEvent } from "react";
 import { Link } from "react-router";
 import { AdminLayout } from "../layout";
 import { trpc } from "../../client/trpc";
+import { PageLoader } from "../../components/PageLoader";
 
 export default function CompetitionsAdmin() {
   const utils = trpc.useUtils();
   const [name, setName] = useState("");
 
-  const { data: competitions = [] } = trpc.competitionsList.useQuery();
+  const {
+    data: competitions = [],
+    isLoading: competitionsLoading,
+  } = trpc.competitionsList.useQuery();
 
   const activeCompetition = competitions.find((competition) => competition.status === "active");
 
@@ -46,6 +50,14 @@ export default function CompetitionsAdmin() {
 
     await creator.mutateAsync({ name: name.trim() });
   };
+
+  if (competitionsLoading) {
+    return (
+      <AdminLayout>
+        <PageLoader invert label="Loading competitions…" />
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>

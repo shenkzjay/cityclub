@@ -1,16 +1,24 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, Fragment } from "react";
+import { keepPreviousData } from "@tanstack/react-query";
 import { trpc } from "../client/trpc";
 import { Link } from "react-router";
 import { Jersey } from "../components/Jersey";
 import { TeamOfTheWeekPitch } from "../components/TeamOfTheWeekPitch";
 import { teamColors } from "../lib/teamColors";
 import { PredictCard } from "../components/PredictCard";
-import { formatKickoff, isFixtureOpen, type FixtureDto } from "../lib/fixtures";
+import { PageLoader } from "../components/PageLoader";
+import {
+  formatKickoff,
+  getNextPredictionRound,
+  isPredictionOpen,
+  type FixtureDto,
+} from "../lib/fixtures";
 
 export function HomePage() {
   const [activeTab, setActiveTab] = useState<"team" | "players">("team");
   const [newsItemsToShow, setNewsItemsToShow] = useState(2);
   const [currentWeekIndex, setCurrentWeekIndex] = useState(0);
+  const [expandedTeamId, setExpandedTeamId] = useState<number | null>(null);
 
   const ONE_HOUR = 60 * 60 * 1000;
 
@@ -20,27 +28,45 @@ export function HomePage() {
     utils.competitionsList.prefetch();
   }, [utils]);
 
-  const { data: teams = [] } = trpc.getTeams.useQuery(undefined, {
+  const { data: teams = [], isLoading: teamsLoading } = trpc.getTeams.useQuery(undefined, {
     staleTime: ONE_HOUR,
+    placeholderData: keepPreviousData,
   });
-  const { data: matches = [] } = trpc.getFixtures.useQuery(undefined, {
+  const { data: matches = [], isLoading: matchesLoading } = trpc.getFixtures.useQuery(undefined, {
     staleTime: 30 * 1000,
     refetchOnWindowFocus: true,
+    placeholderData: keepPreviousData,
   });
-  const { data: players } = trpc.getPlayers.useQuery(undefined, {
+  const { data: players, isLoading: playersLoading } = trpc.getPlayers.useQuery(undefined, {
     staleTime: ONE_HOUR,
+    placeholderData: keepPreviousData,
   });
-  const { data: activeCompetition } = trpc.getActiveCompetition.useQuery(undefined, {
-    staleTime: ONE_HOUR,
-  });
-  const { data: newsItems = [] } = trpc.newsList.useQuery(undefined, {
+  const { data: activeCompetition, isLoading: competitionLoading } =
+    trpc.getActiveCompetition.useQuery(undefined, {
+      staleTime: ONE_HOUR,
+      placeholderData: keepPreviousData,
+    });
+  const { data: newsItems = [], isLoading: newsLoading } = trpc.newsList.useQuery(undefined, {
     staleTime: 15 * 60 * 1000,
     gcTime: 60 * 60 * 1000,
+    placeholderData: keepPreviousData,
   });
-  const { data: teamOfTheWeek } = trpc.getTeamOfTheWeek.useQuery(undefined, {
-    staleTime: 15 * 60 * 1000,
-    gcTime: 60 * 60 * 1000,
-  });
+  const { data: teamOfTheWeek, isLoading: totwLoading } = trpc.getTeamOfTheWeek.useQuery(
+    undefined,
+    {
+      staleTime: 15 * 60 * 1000,
+      gcTime: 60 * 60 * 1000,
+      placeholderData: keepPreviousData,
+    },
+  );
+
+  const homeLoading =
+    teamsLoading ||
+    matchesLoading ||
+    playersLoading ||
+    competitionLoading ||
+    newsLoading ||
+    totwLoading;
 
   //pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -112,17 +138,21 @@ export function HomePage() {
       }));
   }, [matches]);
 
+  const nextPredictionRound = useMemo(() => getNextPredictionRound(matches), [matches]);
+
   useEffect(() => {
     if (weekRounds.length === 0) return;
-    const openIndex = weekRounds.findIndex((week) =>
-      week.matches.some((match) => isFixtureOpen(match))
-    );
-    setCurrentWeekIndex(openIndex === -1 ? weekRounds.length - 1 : openIndex);
-  }, [weekRounds]);
+    const index =
+      nextPredictionRound == null
+        ? -1
+        : weekRounds.findIndex((week) => week.round === nextPredictionRound);
+    setCurrentWeekIndex(index === -1 ? weekRounds.length - 1 : index);
+  }, [weekRounds, nextPredictionRound]);
 
   const currentWeek = weekRounds[currentWeekIndex];
-  const openThisWeek = currentWeek?.matches.filter((match) => isFixtureOpen(match)) ?? [];
-  const hasOpenMatches = matches.some((match) => isFixtureOpen(match));
+  const openThisWeek =
+    currentWeek?.matches.filter((match) => isPredictionOpen(match, nextPredictionRound)) ?? [];
+  const hasOpenMatches = matches.some((match) => isPredictionOpen(match, nextPredictionRound));
 
   const renderMatch = (fixture: FixtureDto, key: number) => {
     const homeName = fixture.homeTeam?.teamName ?? `Team ${fixture.homeTeamId ?? "?"}`;
@@ -162,9 +192,7 @@ export function HomePage() {
             ) : (
               <p className="text-2xl sm:text-3xl font-black text-[#62381d]/60">VS</p>
             )}
-            <p className="text-xs font-semibold text-[#62381d]/70 mt-1">
-              {formatKickoff(fixture)}
-            </p>
+            <p className="text-xs font-semibold text-[#62381d]/70 mt-1">{formatKickoff(fixture)}</p>
           </div>
 
           <Link
@@ -187,6 +215,14 @@ export function HomePage() {
     );
   };
 
+  if (homeLoading) {
+    return (
+      <section className="flex flex-col gap-6 pb-20 bg-[#fff]">
+        <PageLoader label="Loading…" />
+      </section>
+    );
+  }
+
   return (
     <section className=" flex flex-col gap-6  pb-20 bg-[#fff]">
       <section className="[background:url('/cityclub3.jpg')] relative h-[30rem] [background-position:center] bg_pics w-full">
@@ -194,8 +230,8 @@ export function HomePage() {
         <div className="relative flex flex-col justify-center items-center h-full mx-6 text-center">
           <p className="bg-white/30 py-1 px-2 text-sm rounded-2xl text-left">News update⚡️</p>
           <h2 className="text-3xl font-bold">
-            ✨Final showdown!!!✨
-            <br /> Who will be crowned champion in the City Club League Championship 🏆
+            ✨The Race for Glory!!!✨
+            <br /> City Club League Championship Begins 🏆
           </h2>
           {/* <div className="flex flex-col gap-2 font-semibold text-balance">
             <p>Team D lost their spot at the top of the league! </p>
@@ -204,9 +240,7 @@ export function HomePage() {
       </section>
 
       <section className="mx-6 md:w-[70vw] md:mx-auto flex flex-row flex-wrap items-center justify-between gap-4 text-[brown]">
-        <p className="font-semibold">
-          🏆 {activeCompetition?.name ?? "No active competition"}
-        </p>
+        <p className="font-semibold">🏆 {activeCompetition?.name ?? "No active competition"}</p>
         <Link to="/history" className="text-sm underline hover:no-underline">
           View competition history →
         </Link>
@@ -214,41 +248,45 @@ export function HomePage() {
 
       <section className="mx-6 mt-20 md:w-[70vw] md:mx-auto ">
         <h3 className="text-xl font-bold text-black">Latest news</h3>
-        <ul className=" space-y-6  mt-6">
-          {newsItems.slice(0, newsItemsToShow).map((item, index) => (
-            <li className="group newsbg relative" key={index}>
-              <Link
-                key={item.slug}
-                to={`/news/${item.slug}`}
-                className="flex flex-row gap-4  bg-[#f8f0ed] p-3 hover:bg-[#fac4a3] rounded-lg group "
-              >
-                {item.coverImage ? (
-                  <img
-                    src={item.coverImage}
-                    alt=""
-                    className="w-16 h-16 object-cover rounded-md"
-                    onError={(e) => (e.currentTarget.style.display = "none")}
-                  />
-                ) : (
-                  <div className="w-16 h-16 bg-gray-200 rounded-md flex items-center justify-center">
-                    <span className="text-gray-500 text-xs">No img</span>
-                  </div>
-                )}
-                <div>
-                  <h4 className="font-semibold text-black group-hover:text-slate-700">
-                    {item.title}
-                  </h4>
-                  {item.date && (
-                    <p className="text-sm text-gray-500 mt-0.5">{item.date}</p>
+        {newsItems.length > 0 ? (
+          <ul className=" space-y-6  mt-6">
+            {newsItems.slice(0, newsItemsToShow).map((item, index) => (
+              <li className="group newsbg relative" key={index}>
+                <Link
+                  key={item.slug}
+                  to={`/news/${item.slug}`}
+                  className="flex flex-row gap-4  bg-[#f8f0ed] p-3 hover:bg-[#fac4a3] rounded-lg group "
+                >
+                  {item.coverImage ? (
+                    <img
+                      src={item.coverImage}
+                      alt=""
+                      className="w-16 h-16 object-cover rounded-md"
+                      onError={(e) => (e.currentTarget.style.display = "none")}
+                    />
+                  ) : (
+                    <div className="w-16 h-16 bg-gray-200 rounded-md flex items-center justify-center">
+                      <span className="text-gray-500 text-xs">No img</span>
+                    </div>
                   )}
-                  <p className="text-sm text-orange-500 mt-1 group-hover:text-orange-700">
-                    Read more →
-                  </p>
-                </div>
-              </Link>
-            </li>
-          ))}
-        </ul>
+                  <div>
+                    <h4 className="font-semibold text-black group-hover:text-slate-700">
+                      {item.title}
+                    </h4>
+                    {item.date && <p className="text-sm text-gray-500 mt-0.5">{item.date}</p>}
+                    <p className="text-sm text-orange-500 mt-1 group-hover:text-orange-700">
+                      Read more →
+                    </p>
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="flex justify-center py-4 mt-4 bg-[#f8f0ed] rounded-2xl border-2 border-dashed border-[brown]">
+            <p className="text-black ">Stay tuned for latest news update</p>
+          </div>
+        )}
         <div className="flex justify-center gap-4 mt-6 text-black">
           {newsItemsToShow < newsItems.length && (
             <button
@@ -279,7 +317,7 @@ export function HomePage() {
               disabled={weekRounds.length === 0}
               onClick={() =>
                 setCurrentWeekIndex(
-                  currentWeekIndex === 0 ? weekRounds.length - 1 : currentWeekIndex - 1
+                  currentWeekIndex === 0 ? weekRounds.length - 1 : currentWeekIndex - 1,
                 )
               }
             >
@@ -296,7 +334,7 @@ export function HomePage() {
               disabled={weekRounds.length === 0}
               onClick={() =>
                 setCurrentWeekIndex(
-                  currentWeekIndex === weekRounds.length - 1 ? 0 : currentWeekIndex + 1
+                  currentWeekIndex === weekRounds.length - 1 ? 0 : currentWeekIndex + 1,
                 )
               }
             >
@@ -314,7 +352,7 @@ export function HomePage() {
             </ul>
 
             {openThisWeek.length > 0 && (
-              <div className="mt-8">
+              <div className="mt-24">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <h4 className="text-lg font-bold">Predict &amp; Win</h4>
                   <Link to="/predict" className="text-sm underline hover:no-underline">
@@ -324,7 +362,7 @@ export function HomePage() {
                 <ul className="grid sm:grid-cols-2 gap-6 mt-4">
                   {openThisWeek.map((match) => (
                     <li key={match.id}>
-                      <PredictCard match={match} />
+                      <PredictCard match={match} predictable />
                     </li>
                   ))}
                 </ul>
@@ -337,9 +375,9 @@ export function HomePage() {
                   🎯 Predict &amp; Win {matches[0]?.prizeLabel ?? ""}
                 </p>
                 <p className="text-sm text-[#62381d]/80 mt-2">
-                  Guess the exact score of a fixture to win the airtime prize. Be the first
-                  eligible player to match the score — new predictions open when the next fixture
-                  is scheduled.
+                  Guess the exact score of a fixture to win the airtime prize. Be the first eligible
+                  player to match the score — new predictions open when the next fixture is
+                  scheduled.
                 </p>
                 <Link
                   to="/predict"
@@ -357,19 +395,28 @@ export function HomePage() {
         )}
       </section>
 
-      {teamOfTheWeek && (
-        <section className="mb-20 mt-20 mx-6 md:w-[70vw] md:mx-auto text-black">
-          <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-            <h3 className="text-xl font-bold">🏆 Team of the Week</h3>
-            <Link to="/totw" className="text-sm underline hover:no-underline">
-              View full squad →
-            </Link>
-          </div>
+      <section className="mb-20 mt-20 mx-6 md:w-[70vw] md:mx-auto text-black">
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+          <h3 className="text-xl font-bold">🏆 Team of the Week</h3>
+          <Link to="/totw" className="text-sm underline hover:no-underline">
+            View full squad →
+          </Link>
+        </div>
+        {teamOfTheWeek ? (
           <TeamOfTheWeekPitch teamOfTheWeek={teamOfTheWeek} compact />
-        </section>
-      )}
+        ) : (
+          <div className="bg-[#f8f0ed] border-2 border-dashed border-[#62381d] rounded-2xl px-6 py-10 text-center text-[#62381d]">
+            <p className="text-3xl">🏆</p>
+            <p className="font-bold mt-2">Team of the Week coming soon</p>
+            <p className="text-sm mt-1 text-[#62381d]/80">
+              The standout five players and four substitutes will be revealed here after the next
+              match week.
+            </p>
+          </div>
+        )}
+      </section>
 
-      <section className=" mb-20 mt-20 mx-6 md:w-[70vw] md:mx-auto">
+      <section className=" mb-20 mx-6 md:w-[70vw] md:mx-auto">
         <h3 className="text-xl font-bold text-black">Team and player stats</h3>
         {/* Tab Pills */}
         <div className="flex border-b border-gray-200 mb-4 mt-6">
@@ -407,25 +454,106 @@ export function HomePage() {
                   <td className="px-3 py-2">GA-</td>
                   <td className="px-3 py-2">GD+/-</td>
                   <td className="px-3 py-2">PTS</td>
+                  <td className="px-3 py-2"></td>
                 </tr>
               </thead>
 
               <tbody>
                 {sortedTeams && sortedTeams.length > 0 ? (
-                  sortedTeams.map((team, idx) => (
-                    <tr key={team.id} className="odd:bg-[#f8f0ed]  text-[brown] font-bold">
-                      <td className="px-3 py-4">{idx + 1}</td>
-                      <td className="px-3 py-4 text-nowrap">{team.teamName}</td>
-                      <td className="px-3 py-4">{team.score.gamesPlayed}</td>
-                      <td className="px-3 py-4">{team.score.gamesWon}</td>
-                      <td className="px-3 py-4">{team.score.gamesLost}</td>
-                      <td className="px-3 py-4">{team.score.gamesDrawn}</td>
-                      <td className="px-3 py-4">{team.score.goalsFor}</td>
-                      <td className="px-3 py-4">{team.score.goalsAgainst}</td>
-                      <td className="px-3 py-4">{team.score.goalDifference}</td>
-                      <td className="px-3 py-4">{team.score.points}</td>
-                    </tr>
-                  ))
+                  sortedTeams.map((team, idx) => {
+                    const isExpanded = expandedTeamId === team.id;
+                    const squad = [...(team.players ?? [])].sort((a, b) => {
+                      if (b.goals !== a.goals) return b.goals - a.goals;
+                      if (b.assists !== a.assists) return b.assists - a.assists;
+                      if (b.yellowCard !== a.yellowCard) return b.yellowCard - a.yellowCard;
+                      return b.redCard - a.redCard;
+                    });
+
+                    return (
+                      <Fragment key={team.id}>
+                        <tr className="odd:bg-[#f8f0ed]  text-[brown] font-bold">
+                          <td className="px-3 py-4">{idx + 1}</td>
+                          <td className="px-3 py-4 text-nowrap">{team.teamName}</td>
+                          <td className="px-3 py-4">{team.score.gamesPlayed}</td>
+                          <td className="px-3 py-4">{team.score.gamesWon}</td>
+                          <td className="px-3 py-4">{team.score.gamesLost}</td>
+                          <td className="px-3 py-4">{team.score.gamesDrawn}</td>
+                          <td className="px-3 py-4">{team.score.goalsFor}</td>
+                          <td className="px-3 py-4">{team.score.goalsAgainst}</td>
+                          <td className="px-3 py-4">{team.score.goalDifference}</td>
+                          <td className="px-3 py-4">{team.score.points}</td>
+                          <td className="px-3 py-4">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setExpandedTeamId((prev) => (prev === team.id ? null : team.id))
+                              }
+                              className="bg-[brown] hover:bg-[#8b3a1e] text-white font-bold text-xs uppercase px-3 py-2 rounded-lg whitespace-nowrap cursor-pointer"
+                            >
+                              {isExpanded ? "Hide players" : "View players"}
+                            </button>
+                          </td>
+                        </tr>
+                        {isExpanded && (
+                          <tr className="bg-[#fffaf7]">
+                            <td colSpan={11} className="px-4 py-4">
+                              <p className="text-sm font-bold text-[brown] mb-3">
+                                {team.teamName} — Squad ({squad.length})
+                              </p>
+                              {squad.length > 0 ? (
+                                <div className="overflow-x-auto">
+                                  <table className="w-full text-sm">
+                                    <thead>
+                                      <tr className="text-[brown] font-bold">
+                                        <td className="px-3 py-2">No</td>
+                                        <td className="px-3 py-2">Name</td>
+                                        <td className="px-3 py-2 text-center">⚽️</td>
+                                        <td className="px-3 py-2 text-center">👟</td>
+                                        <td className="px-3 py-2 text-center">🟨</td>
+                                        <td className="px-3 py-2 text-center">🟥</td>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {squad.map((player, playerIdx) => (
+                                        <tr
+                                          key={player.id}
+                                          className="odd:bg-[#f8f0ed] text-[brown] font-bold"
+                                        >
+                                          <td className="px-3 py-2">{playerIdx + 1}</td>
+                                          <td className="px-3 py-2 text-nowrap">
+                                            {player.playerName}
+                                            {player.isCaptain && (
+                                              <span className="ml-2 bg-[brown] text-white text-[10px] font-bold rounded-full px-1.5 py-0.5">
+                                                C
+                                              </span>
+                                            )}
+                                          </td>
+                                          <td className="px-3 py-2 text-center">{player.goals}</td>
+                                          <td className="px-3 py-2 text-center">
+                                            {player.assists}
+                                          </td>
+                                          <td className="px-3 py-2 text-center">
+                                            {player.yellowCard}
+                                          </td>
+                                          <td className="px-3 py-2 text-center">
+                                            {player.redCard}
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              ) : (
+                                <p className="text-sm text-gray-500">
+                                  No players recorded for this team.
+                                </p>
+                              )}
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    );
+                  })
                 ) : (
                   <tr>
                     <td>No table list to display yet</td>
@@ -454,7 +582,14 @@ export function HomePage() {
                     currentPageIndex.map((player, idx) => (
                       <tr key={player.id} className="odd:bg-[#f8f0ed]  text-[brown] font-bold">
                         <td className="p-4">{startPageIndex + idx + 1}</td>
-                        <td className="p-4">{player.playerName}</td>
+                        <td className="p-4 text-nowrap">
+                          {player.playerName}
+                          {player.isCaptain && (
+                            <span className="ml-2 bg-[brown] text-white text-[10px] font-bold rounded-full px-1.5 py-0.5">
+                              C
+                            </span>
+                          )}
+                        </td>
                         <td className="p-4">{player.goals}</td>
                         <td className="p-4">{player.assists}</td>
                         <td className="p-4">{player.yellowCard}</td>
@@ -500,7 +635,12 @@ export function HomePage() {
         )}
       </section>
 
-      {/* <section>Rules and Regulations</section> */}
+      <section className="text-black flex justify-center text-center">
+        <p>
+          Built and Maintained by <span className="font-bold text-[brown]">Seyi</span> <br />{" "}
+          ©️Copyright 2026 CityClub League
+        </p>
+      </section>
     </section>
   );
 }

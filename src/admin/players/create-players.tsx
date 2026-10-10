@@ -1,5 +1,6 @@
 import { AdminLayout } from "../layout";
 import { trpc } from "../../client/trpc";
+import { PageLoader } from "../../components/PageLoader";
 import { useState } from "react";
 
 export const CreatePlayersComponent = () => {
@@ -17,7 +18,7 @@ export const CreatePlayersComponent = () => {
     },
   });
 
-  const { data: players } = trpc.getPlayers.useQuery();
+  const { data: players, isLoading: playersLoading } = trpc.getPlayers.useQuery();
 
   //pagination frontend
   const [currentPage, setCurrentPage] = useState(1);
@@ -30,6 +31,7 @@ export const CreatePlayersComponent = () => {
   const [editingYellowCard, setEditingYellowCard] = useState(0);
   const [editingRedCard, setEditingRedCard] = useState(0);
   const [editingPlayerName, setEditingPlayerName] = useState("");
+  const [editingIsCaptain, setEditingIsCaptain] = useState(false);
 
   const playerUpdater = trpc.playerUpdate.useMutation();
 
@@ -71,6 +73,7 @@ export const CreatePlayersComponent = () => {
     const assists = Number(formData.get("assists"));
     const yellowCard = Number(formData.get("yellowCard"));
     const redCard = Number(formData.get("redCard"));
+    const isCaptain = formData.get("isCaptain") === "on";
 
     const playerData = {
       playerName,
@@ -78,6 +81,7 @@ export const CreatePlayersComponent = () => {
       assists,
       yellowCard,
       redCard,
+      isCaptain,
     };
 
     try {
@@ -90,6 +94,7 @@ export const CreatePlayersComponent = () => {
           assists,
           yellowCard,
           redCard,
+          isCaptain,
         });
         utils.getPlayers.invalidate();
         setEditingPlayerId(null);
@@ -98,6 +103,7 @@ export const CreatePlayersComponent = () => {
         setEditingAssists(0);
         setEditingYellowCard(0);
         setEditingRedCard(0);
+        setEditingIsCaptain(false);
       } else {
         // Create new player
         await playerCreator.mutateAsync(playerData);
@@ -107,12 +113,21 @@ export const CreatePlayersComponent = () => {
         setEditingAssists(0);
         setEditingYellowCard(0);
         setEditingRedCard(0);
+        setEditingIsCaptain(false);
       }
       utils.getPlayers.invalidate();
     } catch (error) {
       console.error(error);
     }
   };
+
+  if (playersLoading) {
+    return (
+      <AdminLayout>
+        <PageLoader invert label="Loading players…" />
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>
@@ -183,6 +198,19 @@ export const CreatePlayersComponent = () => {
                   className="border py-2 px-4 rounded-xl w-full"
                 />
               </div>
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  name="isCaptain"
+                  id="isCaptain"
+                  className="w-5 h-5"
+                  checked={editingIsCaptain}
+                  onChange={(e) => setEditingIsCaptain(e.target.checked)}
+                />
+                <label htmlFor="isCaptain" className="font-semibold">
+                  Team captain
+                </label>
+              </div>
 
               {editingPlayerId ? (
                 <button
@@ -223,7 +251,14 @@ export const CreatePlayersComponent = () => {
                 currentPageIndex.map((player, idx) => (
                   <tr key={player.id} className="odd:bg-[#333] even:bg-[#262626]">
                     <td className="px-4 py-2">{startPageIndex + idx + 1}</td>
-                    <td className="px-4 py-2">{player.playerName}</td>
+                    <td className="px-4 py-2 text-nowrap">
+                      {player.playerName}
+                      {player.isCaptain && (
+                        <span className="ml-2 bg-white text-black text-[10px] font-bold rounded-full px-1.5 py-0.5">
+                          (C)
+                        </span>
+                      )}
+                    </td>
                     <td className="px-4 py-2">
                       {editingPlayerId === player.id ? editingGoals : player.goals}
                     </td>
@@ -272,6 +307,7 @@ export const CreatePlayersComponent = () => {
                             setEditingAssists(player.assists);
                             setEditingYellowCard(player.yellowCard);
                             setEditingRedCard(player.redCard);
+                            setEditingIsCaptain(!!player.isCaptain);
                           }}
                           className="px-4 py-2 bg-blue-500 text-white font-semibold rounded-xl"
                         >

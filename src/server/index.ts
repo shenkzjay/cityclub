@@ -69,10 +69,15 @@ function excerptFromMarkdown(content: string, maxLength = 140): string {
   return `${text.slice(0, maxLength).trimEnd()}…`;
 }
 
-const DEFAULT_PRIZE_LABEL = "₦2,000 airtime";
+const DEFAULT_PRIZE_LABEL = "₦500 airtime";
+const PREDICTION_LEAD_MINUTES = 60;
 
 function normalizeName(value: string): string {
   return value.replace(/\s+/g, " ").trim();
+}
+
+function foldName(value: string): string {
+  return value.toLowerCase().replace(/\s+/g, "");
 }
 
 function formatMatchDate(iso: string): string {
@@ -95,19 +100,15 @@ async function applyMatchPoints(
   awayTeamId: number,
   homeGoals: number,
   awayGoals: number,
-  dir: 1 | -1
+  dir: 1 | -1,
 ) {
   const [homeStats, awayStats] = await Promise.all([
-    db
-      .get()
-      .query.pointsTable.findFirst({
-        where: and(eq(pointsTable.teamId, homeTeamId), eq(pointsTable.competitionId, competitionId)),
-      }),
-    db
-      .get()
-      .query.pointsTable.findFirst({
-        where: and(eq(pointsTable.teamId, awayTeamId), eq(pointsTable.competitionId, competitionId)),
-      }),
+    db.get().query.pointsTable.findFirst({
+      where: and(eq(pointsTable.teamId, homeTeamId), eq(pointsTable.competitionId, competitionId)),
+    }),
+    db.get().query.pointsTable.findFirst({
+      where: and(eq(pointsTable.teamId, awayTeamId), eq(pointsTable.competitionId, competitionId)),
+    }),
   ]);
 
   if (!homeStats || !awayStats) {
@@ -169,6 +170,7 @@ function matchToDto(match: {
   competitionId: number | null;
   homeTeamId: number | null;
   awayTeamId: number | null;
+  roastNote?: string | null;
   homeTeam?: { id: number; teamName: string; color: string } | null;
   awayTeam?: { id: number; teamName: string; color: string } | null;
 }) {
@@ -184,20 +186,24 @@ function matchToDto(match: {
     competitionId: match.competitionId,
     homeTeamId: match.homeTeamId,
     awayTeamId: match.awayTeamId,
+    roastNote: match.roastNote ?? null,
     homeTeam: match.homeTeam ?? null,
     awayTeam: match.awayTeam ?? null,
   };
 }
 
-function totwPlayerToDto(player: {
-  id: number;
-  playerName: string;
-  goals: number;
-  assists: number;
-  yellowCard: number;
-  redCard: number;
-  team?: { id: number; teamName: string; color: string } | null;
-} | null) {
+function totwPlayerToDto(
+  player: {
+    id: number;
+    playerName: string;
+    goals: number;
+    assists: number;
+    yellowCard: number;
+    redCard: number;
+    isCaptain?: boolean;
+    team?: { id: number; teamName: string; color: string } | null;
+  } | null,
+) {
   if (!player) {
     return null;
   }
@@ -209,6 +215,7 @@ function totwPlayerToDto(player: {
     assists: player.assists,
     yellowCard: player.yellowCard,
     redCard: player.redCard,
+    isCaptain: player.isCaptain ?? false,
     team: player.team
       ? { id: player.team.id, teamName: player.team.teamName, color: player.team.color }
       : null,
@@ -227,10 +234,6 @@ function teamOfTheWeekToDto(totw: {
   midfielder: Parameters<typeof totwPlayerToDto>[0];
   forwardOne: Parameters<typeof totwPlayerToDto>[0];
   forwardTwo: Parameters<typeof totwPlayerToDto>[0];
-  subOne: Parameters<typeof totwPlayerToDto>[0];
-  subTwo: Parameters<typeof totwPlayerToDto>[0];
-  subThree: Parameters<typeof totwPlayerToDto>[0];
-  subFour: Parameters<typeof totwPlayerToDto>[0];
 }) {
   return {
     id: totw.id,
@@ -243,10 +246,6 @@ function teamOfTheWeekToDto(totw: {
     midfielder: totwPlayerToDto(totw.midfielder),
     forwardOne: totwPlayerToDto(totw.forwardOne),
     forwardTwo: totwPlayerToDto(totw.forwardTwo),
-    subOne: totwPlayerToDto(totw.subOne),
-    subTwo: totwPlayerToDto(totw.subTwo),
-    subThree: totwPlayerToDto(totw.subThree),
-    subFour: totwPlayerToDto(totw.subFour),
   };
 }
 
@@ -278,7 +277,7 @@ async function settleMatch(matchId: number) {
       (entry) =>
         entry.eligible &&
         entry.guessedHomeGoals === match.homeGoals &&
-        entry.guessedAwayGoals === match.awayGoals
+        entry.guessedAwayGoals === match.awayGoals,
     )
     .sort((a, b) => a.submittedAt.getTime() - b.submittedAt.getTime());
 
@@ -299,6 +298,23 @@ async function settleMatch(matchId: number) {
   }
 
   return { winnerId: winner?.id ?? null };
+}
+
+// Predictions are only accepted for the next matchday: the lowest round that
+// still has an unfinished fixture.
+async function getNextPredictionRound(competitionId: number): Promise<number | null> {
+  const rows = await db
+    .get()
+    .query.matchTable.findMany({
+      where: and(eq(matchTable.competitionId, competitionId), ne(matchTable.status, "final")),
+      columns: { round: true },
+    });
+
+  const rounds = rows
+    .map((row) => row.round)
+    .filter((round): round is number => round != null);
+
+  return rounds.length > 0 ? Math.min(...rounds) : null;
 }
 
 export const appRouter = router({
@@ -331,7 +347,7 @@ export const appRouter = router({
         username: z.string().min(1).trim(),
         email: z.email().trim(),
         password: z.string().min(1),
-      })
+      }),
     )
     .mutation(async (opts) => {
       const { input } = opts;
@@ -367,7 +383,7 @@ export const appRouter = router({
       z.object({
         email: z.email().trim(),
         password: z.string().min(1),
-      })
+      }),
     )
     .mutation(async (opts) => {
       const { input, ctx } = opts;
@@ -382,7 +398,7 @@ export const appRouter = router({
 
       const comparePassword = await compareHashedPassword(
         input.password.trim(),
-        existingUser.password
+        existingUser.password,
       );
 
       if (!comparePassword) {
@@ -446,7 +462,7 @@ export const appRouter = router({
         date: z.string().min(1).trim(),
         coverImage: z.string().trim().optional().default(""),
         content: z.string().min(1),
-      })
+      }),
     )
     .mutation(async ({ input }) => {
       const slug = slugify(input.title);
@@ -486,7 +502,7 @@ export const appRouter = router({
         date: z.string().min(1).trim(),
         coverImage: z.string().trim().optional().default(""),
         content: z.string().min(1),
-      })
+      }),
     )
     .mutation(async ({ input }) => {
       const existing = await db.get().query.newsTable.findFirst({
@@ -623,15 +639,18 @@ export const appRouter = router({
         });
 
         for (const player of oldPlayers) {
-          await db.get().insert(playersTable).values({
-            playerName: player.playerName,
-            goals: 0,
-            assists: 0,
-            yellowCard: 0,
-            redCard: 0,
-            competitionId: newCompetition.id,
-            teamId: player.teamId ? teamIdMap.get(player.teamId) ?? null : null,
-          });
+          await db
+            .get()
+            .insert(playersTable)
+            .values({
+              playerName: player.playerName,
+              goals: 0,
+              assists: 0,
+              yellowCard: 0,
+              redCard: 0,
+              competitionId: newCompetition.id,
+              teamId: player.teamId ? (teamIdMap.get(player.teamId) ?? null) : null,
+            });
         }
       }
 
@@ -676,8 +695,9 @@ export const appRouter = router({
         assists: z.number().int().min(0),
         yellowCard: z.number().int().min(0),
         redCard: z.number().int().min(0),
+        isCaptain: z.boolean().optional().default(false),
         teamId: z.number().int().optional(),
-      })
+      }),
     )
     .mutation(async (opts) => {
       const { input } = opts;
@@ -691,7 +711,7 @@ export const appRouter = router({
       const existingPlayer = await db.get().query.playersTable.findFirst({
         where: and(
           eq(playersTable.playerName, input.playerName.trim()),
-          eq(playersTable.competitionId, active.id)
+          eq(playersTable.competitionId, active.id),
         ),
       });
 
@@ -717,10 +737,11 @@ export const appRouter = router({
         assists: z.number().int().min(0),
         yellowCard: z.number().int().min(0),
         redCard: z.number().int().min(0),
-      })
+        isCaptain: z.boolean().optional(),
+      }),
     )
     .mutation(async ({ input }) => {
-      const { id, playerName, goals, assists, yellowCard, redCard } = input;
+      const { id, playerName, goals, assists, yellowCard, redCard, isCaptain } = input;
 
       const active = await findActiveCompetition();
 
@@ -745,6 +766,7 @@ export const appRouter = router({
           assists: existingPlayer.assists + assists,
           yellowCard: existingPlayer.yellowCard + yellowCard,
           redCard: existingPlayer.redCard + redCard,
+          isCaptain: isCaptain ?? existingPlayer.isCaptain,
         })
         .where(eq(playersTable.id, id));
 
@@ -760,7 +782,7 @@ export const appRouter = router({
         color: z.string().min(1, "Color is required"),
         description: z.string().optional().default("No description"),
         playerIds: z.array(z.number()).optional().default([]),
-      })
+      }),
     )
     .mutation(async (opts) => {
       const { input } = opts;
@@ -775,7 +797,7 @@ export const appRouter = router({
       const existingTeam = await db.get().query.teamsTable.findFirst({
         where: and(
           eq(teamsTable.teamName, input.teamName.trim()),
-          eq(teamsTable.competitionId, active.id)
+          eq(teamsTable.competitionId, active.id),
         ),
       });
 
@@ -865,7 +887,7 @@ export const appRouter = router({
         round: z.number().int().min(1),
         kickoffAt: z.string().trim().min(1),
         prizeLabel: z.string().trim().optional().default(DEFAULT_PRIZE_LABEL),
-      })
+      }),
     )
     .mutation(async ({ input }) => {
       const active = await requireActiveCompetition();
@@ -921,7 +943,7 @@ export const appRouter = router({
         round: z.number().int().min(1),
         kickoffAt: z.string().trim().min(1),
         prizeLabel: z.string().trim().optional().default(DEFAULT_PRIZE_LABEL),
-      })
+      }),
     )
     .mutation(async ({ input }) => {
       const active = await requireActiveCompetition();
@@ -985,7 +1007,7 @@ export const appRouter = router({
 
       if (fixture.status === "final") {
         throw new Error(
-          "Cannot delete a played fixture - its result is already in the standings. Correct the result on the Scores page instead."
+          "Cannot delete a played fixture - its result is already in the standings. Correct the result on the Scores page instead.",
         );
       }
 
@@ -1002,7 +1024,7 @@ export const appRouter = router({
         matchId: z.number().int().min(1),
         homeGoals: z.number().int().min(0),
         awayGoals: z.number().int().min(0),
-      })
+      }),
     )
     .mutation(async ({ input }) => {
       const active = await requireActiveCompetition();
@@ -1034,7 +1056,7 @@ export const appRouter = router({
           fixture.awayTeamId,
           fixture.homeGoals,
           fixture.awayGoals,
-          -1
+          -1,
         );
       }
 
@@ -1044,7 +1066,7 @@ export const appRouter = router({
         fixture.awayTeamId,
         input.homeGoals,
         input.awayGoals,
-        1
+        1,
       );
 
       await db
@@ -1072,7 +1094,7 @@ export const appRouter = router({
         playerName: z.string().trim().min(1),
         homeGoals: z.number().int().min(0).max(50),
         awayGoals: z.number().int().min(0).max(50),
-      })
+      }),
     )
     .mutation(async ({ input }) => {
       const active = await findActiveCompetition();
@@ -1097,7 +1119,16 @@ export const appRouter = router({
         throw new Error("This match has already been played.");
       }
 
-      if (!match.kickoffAt || new Date(match.kickoffAt).getTime() <= Date.now()) {
+      const nextRound = await getNextPredictionRound(active.id);
+
+      if (nextRound == null || match.round !== nextRound) {
+        throw new Error("Predictions are only open for the upcoming matchday.");
+      }
+
+      if (
+        !match.kickoffAt ||
+        Date.now() >= new Date(match.kickoffAt).getTime() - PREDICTION_LEAD_MINUTES * 60 * 1000
+      ) {
         throw new Error("Predictions are closed for this match.");
       }
 
@@ -1108,7 +1139,7 @@ export const appRouter = router({
       });
       const participant =
         participants.find(
-          (player) => player.playerName.toLowerCase() === playerName.toLowerCase()
+          (player) => foldName(player.playerName) === foldName(playerName),
         ) ?? null;
       const eligible = Boolean(participant);
 
@@ -1118,25 +1149,28 @@ export const appRouter = router({
 
       const alreadySubmitted =
         existingEntries.some((entry) =>
-          participant ? entry.playerId === participant.id : false
+          participant ? entry.playerId === participant.id : false,
         ) ||
         existingEntries.some(
-          (entry) => entry.playerName.toLowerCase() === playerName.toLowerCase()
+          (entry) => foldName(entry.playerName) === foldName(playerName),
         );
 
       if (alreadySubmitted) {
         throw new Error("You have already submitted a prediction for this match.");
       }
 
-      await db.get().insert(predictionEntriesTable).values({
-        matchId: input.matchId,
-        playerId: participant?.id ?? null,
-        playerName,
-        guessedHomeGoals: input.homeGoals,
-        guessedAwayGoals: input.awayGoals,
-        eligible,
-        status: "open",
-      });
+      await db
+        .get()
+        .insert(predictionEntriesTable)
+        .values({
+          matchId: input.matchId,
+          playerId: participant?.id ?? null,
+          playerName,
+          guessedHomeGoals: input.homeGoals,
+          guessedAwayGoals: input.awayGoals,
+          eligible,
+          status: "open",
+        });
 
       return { success: true, eligible, playerName };
     }),
@@ -1173,6 +1207,7 @@ export const appRouter = router({
           prizeClaimed: entry.prizeClaimed,
           submittedAt: entry.submittedAt.toISOString(),
         })),
+        settled: match.status === "final" && entries.every((entry) => entry.status !== "open"),
         winner: entries.find((entry) => entry.status === "won") ?? null,
       };
     }),
@@ -1181,6 +1216,34 @@ export const appRouter = router({
     .input(z.object({ matchId: z.number().int().min(1) }))
     .mutation(async ({ input }) => {
       return settleMatch(input.matchId);
+    }),
+
+  matchRoastNoteUpdate: protectedProcedure
+    .input(
+      z.object({
+        matchId: z.number().int().min(1),
+        roastNote: z.string().max(600),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const match = await db.get().query.matchTable.findFirst({
+        where: eq(matchTable.id, input.matchId),
+      });
+
+      if (!match) {
+        throw new Error("Fixture not found.");
+      }
+
+      const trimmed = input.roastNote.trim();
+      const roastNote = trimmed.length > 0 ? trimmed : null;
+
+      await db
+        .get()
+        .update(matchTable)
+        .set({ roastNote })
+        .where(eq(matchTable.id, input.matchId));
+
+      return { success: true, roastNote };
     }),
 
   matchPredictionsList: protectedProcedure
@@ -1267,10 +1330,6 @@ export const appRouter = router({
           midfielder: playerWithTeam,
           forwardOne: playerWithTeam,
           forwardTwo: playerWithTeam,
-          subOne: playerWithTeam,
-          subTwo: playerWithTeam,
-          subThree: playerWithTeam,
-          subFour: playerWithTeam,
         },
       });
 
@@ -1286,11 +1345,7 @@ export const appRouter = router({
         midfielderId: z.number().int().min(1).nullish(),
         forwardOneId: z.number().int().min(1).nullish(),
         forwardTwoId: z.number().int().min(1).nullish(),
-        subOneId: z.number().int().min(1).nullish(),
-        subTwoId: z.number().int().min(1).nullish(),
-        subThreeId: z.number().int().min(1).nullish(),
-        subFourId: z.number().int().min(1).nullish(),
-      })
+      }),
     )
     .mutation(async ({ input }) => {
       const active = await requireActiveCompetition();
@@ -1301,10 +1356,6 @@ export const appRouter = router({
         input.midfielderId,
         input.forwardOneId,
         input.forwardTwoId,
-        input.subOneId,
-        input.subTwoId,
-        input.subThreeId,
-        input.subFourId,
       ].filter((id): id is number => typeof id === "number");
 
       if (playerIds.length > 0) {
@@ -1331,10 +1382,6 @@ export const appRouter = router({
         midfielderId: input.midfielderId ?? null,
         forwardOneId: input.forwardOneId ?? null,
         forwardTwoId: input.forwardTwoId ?? null,
-        subOneId: input.subOneId ?? null,
-        subTwoId: input.subTwoId ?? null,
-        subThreeId: input.subThreeId ?? null,
-        subFourId: input.subFourId ?? null,
       };
 
       const existing = await db.get().query.teamOfTheWeekTable.findFirst({

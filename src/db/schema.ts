@@ -80,6 +80,7 @@ export const matchTable = table("match_table", {
   status: text("status").notNull().default("scheduled"),
   prizeLabel: text("prizeLabel").notNull().default("₦2,000 airtime"),
   pointsRecorded: boolean("pointsRecorded").notNull().default(false),
+  roastNote: text("roastNote"),
 });
 
 export const teamsTable = table(
@@ -105,6 +106,7 @@ export const playersTable = table(
     assists: integer("assists").notNull().default(0),
     yellowCard: integer("yellowCard").notNull().default(0),
     redCard: integer("redCard").notNull().default(0),
+    isCaptain: boolean("isCaptain").notNull().default(false),
     teamId: integer("teamId").references(() => teamsTable.id, { onDelete: "cascade" }),
     competitionId: integer("competitionId")
       .references(() => competitionsTable.id, { onDelete: "cascade" })
@@ -228,18 +230,6 @@ export const teamOfTheWeekTable = table(
     forwardTwoId: integer("forwardTwoId").references(() => playersTable.id, {
       onDelete: "set null",
     }),
-    subOneId: integer("subOneId").references(() => playersTable.id, {
-      onDelete: "set null",
-    }),
-    subTwoId: integer("subTwoId").references(() => playersTable.id, {
-      onDelete: "set null",
-    }),
-    subThreeId: integer("subThreeId").references(() => playersTable.id, {
-      onDelete: "set null",
-    }),
-    subFourId: integer("subFourId").references(() => playersTable.id, {
-      onDelete: "set null",
-    }),
     updatedAt: timestamp("updatedAt").notNull().defaultNow(),
   },
   (table) => [unique("unique_totw_per_competition").on(table.competitionId)]
@@ -274,25 +264,5 @@ export const teamOfTheWeekRelations = relations(teamOfTheWeekTable, ({ one }) =>
     fields: [teamOfTheWeekTable.forwardTwoId],
     references: [playersTable.id],
     relationName: "totwForwardTwo",
-  }),
-  subOne: one(playersTable, {
-    fields: [teamOfTheWeekTable.subOneId],
-    references: [playersTable.id],
-    relationName: "totwSubOne",
-  }),
-  subTwo: one(playersTable, {
-    fields: [teamOfTheWeekTable.subTwoId],
-    references: [playersTable.id],
-    relationName: "totwSubTwo",
-  }),
-  subThree: one(playersTable, {
-    fields: [teamOfTheWeekTable.subThreeId],
-    references: [playersTable.id],
-    relationName: "totwSubThree",
-  }),
-  subFour: one(playersTable, {
-    fields: [teamOfTheWeekTable.subFourId],
-    references: [playersTable.id],
-    relationName: "totwSubFour",
   }),
 }));

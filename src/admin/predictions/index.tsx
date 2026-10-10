@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
+import { keepPreviousData } from "@tanstack/react-query";
 import { AdminLayout } from "../layout";
 import { trpc } from "../../client/trpc";
+import { PageLoader } from "../../components/PageLoader";
 import { formatKickoff, type FixtureDto } from "../../lib/fixtures";
 import type { inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "../../server";
@@ -30,7 +32,12 @@ function fixtureLabel(fixture: FixtureDto): string {
 export default function PredictionsAdmin() {
   const utils = trpc.useUtils();
 
-  const { data: fixtures = [] } = trpc.getFixtures.useQuery();
+  const {
+    data: fixtures = [],
+    isLoading: fixturesLoading,
+  } = trpc.getFixtures.useQuery(undefined, {
+    placeholderData: keepPreviousData,
+  });
   const [selectedMatchId, setSelectedMatchId] = useState<number | "">("");
 
   useEffect(() => {
@@ -48,6 +55,27 @@ export default function PredictionsAdmin() {
     [fixtures, selectedMatchId]
   );
 
+  const [roastNoteDraft, setRoastNoteDraft] = useState("");
+  const [homeScore, setHomeScore] = useState(0);
+  const [awayScore, setAwayScore] = useState(0);
+
+  useEffect(() => {
+    setRoastNoteDraft(selectedMatch?.roastNote ?? "");
+  }, [selectedMatch?.id, selectedMatch?.roastNote]);
+
+  useEffect(() => {
+    setHomeScore(selectedMatch?.homeGoals ?? 0);
+    setAwayScore(selectedMatch?.awayGoals ?? 0);
+  }, [selectedMatch?.id, selectedMatch?.homeGoals, selectedMatch?.awayGoals]);
+
+  const roastNoteSave = trpc.matchRoastNoteUpdate.useMutation({
+    onSuccess: () => {
+      utils.getFixtures.invalidate();
+      utils.matchPredictionsList.invalidate({ matchId: Number(selectedMatchId) });
+    },
+    onError: (error) => alert(`Could not save roast note: ${error.message}`),
+  });
+
   const { data: data, isLoading } = trpc.matchPredictionsList.useQuery(
     { matchId: Number(selectedMatchId) },
     { enabled: Boolean(selectedMatchId) }
@@ -57,6 +85,29 @@ export default function PredictionsAdmin() {
     onSuccess: () => utils.matchPredictionsList.invalidate({ matchId: Number(selectedMatchId) }),
     onError: (error) => alert(`Could not settle: ${error.message}`),
   });
+
+  const record = trpc.recordMatchScores.useMutation({
+    onSuccess: () => {
+      utils.getTeams.invalidate();
+      utils.getFixtures.invalidate();
+      utils.matchPredictionsList.invalidate({ matchId: Number(selectedMatchId) });
+    },
+    onError: (error) => alert(`Could not record result: ${error.message}`),
+  });
+
+  const handleRecordAndSettle = () => {
+    if (!selectedMatchId) return;
+    const confirmed = window.confirm(
+      `Record the result ${homeScore}-${awayScore} and settle this fixture's predictions?`
+    );
+    if (confirmed) {
+      record.mutate({
+        matchId: Number(selectedMatchId),
+        homeGoals: homeScore,
+        awayGoals: awayScore,
+      });
+    }
+  };
 
   const claim = trpc.setPrizeClaimed.useMutation({
     onSuccess: () => utils.matchPredictionsList.invalidate({ matchId: Number(selectedMatchId) }),
@@ -82,6 +133,14 @@ export default function PredictionsAdmin() {
           entry.guessedAwayGoals === selectedMatch.awayGoals
       )
     : [];
+
+  if (fixturesLoading) {
+    return (
+      <AdminLayout>
+        <PageLoader invert label="Loading fixtures…" />
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>
@@ -115,15 +174,53 @@ export default function PredictionsAdmin() {
             </select>
           </div>
 
-          <button
-            type="button"
-            onClick={handleSettle}
-            disabled={!isFinal || settle.isPending}
-            className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-xl disabled:opacity-50"
-          >
-            {settle.isPending ? "Settling..." : "Settle results"}
-          </button>
+          {isFinal ? (
+            <button
+              type="button"
+              onClick={handleSettle}
+              disabled={settle.isPending}
+              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-xl disabled:opacity-50"
+            >
+              {settle.isPending ? "Settling..." : "Settle results"}
+            </button>
+          ) : (
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min="0"
+                  aria-label="Home team goals"
+                  value={homeScore}
+                  onChange={(e) => setHomeScore(Math.max(0, Number(e.target.value)))}
+                  className="w-16 border rounded-lg px-2 py-1.5 bg-[#262626] text-white text-center [color-scheme:dark]"
+                />
+                <span className="text-slate-400">-</span>
+                <input
+                  type="number"
+                  min="0"
+                  aria-label="Away team goals"
+                  value={awayScore}
+                  onChange={(e) => setAwayScore(Math.max(0, Number(e.target.value)))}
+                  className="w-16 border rounded-lg px-2 py-1.5 bg-[#262626] text-white text-center [color-scheme:dark]"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleRecordAndSettle}
+                disabled={record.isPending}
+                className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-xl disabled:opacity-50"
+              >
+                {record.isPending ? "Recording & settling..." : "Record result & settle"}
+              </button>
+            </div>
+          )}
         </div>
+
+        {selectedMatch && !isFinal && (
+          <p className="text-xs text-slate-500 mb-6 -mt-3">
+            Enter the final score to settle this fixture's predictions.
+          </p>
+        )}
 
         {selectedMatch && (
           <div className="bg-[#333] rounded-xl p-4 mb-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
@@ -141,6 +238,36 @@ export default function PredictionsAdmin() {
                 {exactGuesses.length} exact match{exactGuesses.length === 1 ? "" : "es"}
               </span>
             )}
+          </div>
+        )}
+
+        {selectedMatch && (
+          <div className="bg-[#333] rounded-xl p-4 mb-6">
+            <label htmlFor="roastNote" className="block text-sm font-semibold mb-2">
+              Roast note (shown on “Copy Roast”; leave blank to auto-generate)
+            </label>
+            <textarea
+              id="roastNote"
+              value={roastNoteDraft}
+              onChange={(e) => setRoastNoteDraft(e.target.value)}
+              rows={2}
+              maxLength={600}
+              placeholder="e.g. The late equalizer got him!"
+              className="w-full border rounded-xl px-3 py-2 bg-[#262626] text-white mb-3"
+            />
+            <button
+              type="button"
+              onClick={() =>
+                roastNoteSave.mutate({
+                  matchId: Number(selectedMatch.id),
+                  roastNote: roastNoteDraft,
+                })
+              }
+              disabled={roastNoteSave.isPending}
+              className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-xl disabled:opacity-50"
+            >
+              {roastNoteSave.isPending ? "Saving..." : "Save roast note"}
+            </button>
           </div>
         )}
 

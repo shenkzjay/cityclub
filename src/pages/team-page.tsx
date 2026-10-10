@@ -95,7 +95,14 @@ export default function TeamPage() {
                 team.players.map((player, idx) => (
                   <tr key={player.id} className="font-bold odd:bg-[#f8f0ed] text-[brown]">
                     <td className="px-4 py-2">{idx + 1}</td>
-                    <td className="px-4 py-2">{player.playerName}</td>
+                    <td className="px-4 py-2 text-nowrap">
+                      {player.playerName}
+                      {player.isCaptain && (
+                        <span className="ml-2 bg-[brown] text-white text-[10px] font-bold rounded-full px-1.5 py-0.5">
+                          C
+                        </span>
+                      )}
+                    </td>
                     <td className="px-4 py-2">{player.goals}</td>
                     <td className="px-4 py-2">{player.assists}</td>
                     <td className="px-4 py-2">{player.yellowCard}</td>
