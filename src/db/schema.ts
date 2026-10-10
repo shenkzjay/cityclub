@@ -8,7 +8,7 @@ import {
   timestamp,
   boolean,
 } from "drizzle-orm/pg-core";
-import { relations, sql } from "drizzle-orm";
+import { relations } from "drizzle-orm";
 
 export const usersTable = table(
   "users_table",
@@ -139,10 +139,14 @@ export const predictionEntriesTable = table(
 );
 
 //one competition could have many teams, players and matches (one - many)
-export const competitionRelations = relations(competitionsTable, ({ many }) => ({
+export const competitionRelations = relations(competitionsTable, ({ many, one }) => ({
   teams: many(teamsTable),
   players: many(playersTable),
   matches: many(matchTable),
+  teamOfTheWeek: one(teamOfTheWeekTable, {
+    fields: [competitionsTable.id],
+    references: [teamOfTheWeekTable.competitionId],
+  }),
 }));
 
 //one team could have many players (one - many)
@@ -290,12 +294,5 @@ export const teamOfTheWeekRelations = relations(teamOfTheWeekTable, ({ one }) =>
     fields: [teamOfTheWeekTable.subFourId],
     references: [playersTable.id],
     relationName: "totwSubFour",
-  }),
-}));
-
-export const competitionTotwRelations = relations(competitionsTable, ({ one }) => ({
-  teamOfTheWeek: one(teamOfTheWeekTable, {
-    fields: [competitionsTable.id],
-    references: [teamOfTheWeekTable.competitionId],
   }),
 }));

@@ -10,6 +10,7 @@ const NAV_LINKS = [
   { to: "/admin/points/points-update", label: "Scores" },
   { to: "/admin/fixtures", label: "Fixtures" },
   { to: "/admin/predictions", label: "Predictions" },
+  { to: "/admin/totw", label: "Team of the Week" },
   { to: "/admin/news", label: "News" },
   { to: "/admin/competitions", label: "Competitions" },
 ];

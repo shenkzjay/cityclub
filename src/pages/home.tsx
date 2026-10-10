@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { trpc } from "../client/trpc";
 import { Link } from "react-router";
 import { Jersey } from "../components/Jersey";
+import { TeamOfTheWeekPitch } from "../components/TeamOfTheWeekPitch";
 import { teamColors } from "../lib/teamColors";
 import { PredictCard } from "../components/PredictCard";
 import { formatKickoff, isFixtureOpen, type FixtureDto } from "../lib/fixtures";
@@ -33,6 +34,10 @@ export function HomePage() {
     staleTime: ONE_HOUR,
   });
   const { data: newsItems = [] } = trpc.newsList.useQuery(undefined, {
+    staleTime: 15 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
+  });
+  const { data: teamOfTheWeek } = trpc.getTeamOfTheWeek.useQuery(undefined, {
     staleTime: 15 * 60 * 1000,
     gcTime: 60 * 60 * 1000,
   });
@@ -351,6 +356,18 @@ export function HomePage() {
           </p>
         )}
       </section>
+
+      {teamOfTheWeek && (
+        <section className="mb-20 mt-20 mx-6 md:w-[70vw] md:mx-auto text-black">
+          <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+            <h3 className="text-xl font-bold">🏆 Team of the Week</h3>
+            <Link to="/totw" className="text-sm underline hover:no-underline">
+              View full squad →
+            </Link>
+          </div>
+          <TeamOfTheWeekPitch teamOfTheWeek={teamOfTheWeek} compact />
+        </section>
+      )}
 
       <section className=" mb-20 mt-20 mx-6 md:w-[70vw] md:mx-auto">
         <h3 className="text-xl font-bold text-black">Team and player stats</h3>

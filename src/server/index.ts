@@ -8,9 +8,10 @@ import {
   predictionEntriesTable,
   teamsTable,
   pointsTable,
+  teamOfTheWeekTable,
   usersTable,
 } from "../db/schema.js";
-import { and, asc, desc, eq, isNull, ne } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, ne } from "drizzle-orm";
 import z from "zod";
 import {
   compareHashedPassword,
@@ -185,6 +186,67 @@ function matchToDto(match: {
     awayTeamId: match.awayTeamId,
     homeTeam: match.homeTeam ?? null,
     awayTeam: match.awayTeam ?? null,
+  };
+}
+
+function totwPlayerToDto(player: {
+  id: number;
+  playerName: string;
+  goals: number;
+  assists: number;
+  yellowCard: number;
+  redCard: number;
+  team?: { id: number; teamName: string; color: string } | null;
+} | null) {
+  if (!player) {
+    return null;
+  }
+
+  return {
+    id: player.id,
+    playerName: player.playerName,
+    goals: player.goals,
+    assists: player.assists,
+    yellowCard: player.yellowCard,
+    redCard: player.redCard,
+    team: player.team
+      ? { id: player.team.id, teamName: player.team.teamName, color: player.team.color }
+      : null,
+  };
+}
+
+// Serialises a team of the week row (with players and their teams) for the client.
+function teamOfTheWeekToDto(totw: {
+  id: number;
+  weekLabel: string | null;
+  competitionId: number;
+  updatedAt: Date | string;
+  competition?: { name: string } | null;
+  defenderOne: Parameters<typeof totwPlayerToDto>[0];
+  defenderTwo: Parameters<typeof totwPlayerToDto>[0];
+  midfielder: Parameters<typeof totwPlayerToDto>[0];
+  forwardOne: Parameters<typeof totwPlayerToDto>[0];
+  forwardTwo: Parameters<typeof totwPlayerToDto>[0];
+  subOne: Parameters<typeof totwPlayerToDto>[0];
+  subTwo: Parameters<typeof totwPlayerToDto>[0];
+  subThree: Parameters<typeof totwPlayerToDto>[0];
+  subFour: Parameters<typeof totwPlayerToDto>[0];
+}) {
+  return {
+    id: totw.id,
+    weekLabel: totw.weekLabel,
+    competitionId: totw.competitionId,
+    competitionName: totw.competition?.name ?? null,
+    updatedAt: new Date(totw.updatedAt).toISOString(),
+    defenderOne: totwPlayerToDto(totw.defenderOne),
+    defenderTwo: totwPlayerToDto(totw.defenderTwo),
+    midfielder: totwPlayerToDto(totw.midfielder),
+    forwardOne: totwPlayerToDto(totw.forwardOne),
+    forwardTwo: totwPlayerToDto(totw.forwardTwo),
+    subOne: totwPlayerToDto(totw.subOne),
+    subTwo: totwPlayerToDto(totw.subTwo),
+    subThree: totwPlayerToDto(totw.subThree),
+    subFour: totwPlayerToDto(totw.subFour),
   };
 }
 
@@ -1179,6 +1241,115 @@ export const appRouter = router({
         .update(predictionEntriesTable)
         .set({ prizeClaimed: input.prizeClaimed })
         .where(eq(predictionEntriesTable.id, input.entryId));
+
+      return { success: true };
+    }),
+
+  // ---- team of the week ---------------------------------------------------
+
+  getTeamOfTheWeek: publicProcedure
+    .input(z.object({ competitionId: z.number().int().optional() }).optional())
+    .query(async ({ input }) => {
+      const competitionId = await resolveCompetitionId(input?.competitionId);
+
+      if (!competitionId) {
+        return null;
+      }
+
+      const playerWithTeam = { with: { team: true } } as const;
+
+      const totw = await db.get().query.teamOfTheWeekTable.findFirst({
+        where: eq(teamOfTheWeekTable.competitionId, competitionId),
+        with: {
+          competition: true,
+          defenderOne: playerWithTeam,
+          defenderTwo: playerWithTeam,
+          midfielder: playerWithTeam,
+          forwardOne: playerWithTeam,
+          forwardTwo: playerWithTeam,
+          subOne: playerWithTeam,
+          subTwo: playerWithTeam,
+          subThree: playerWithTeam,
+          subFour: playerWithTeam,
+        },
+      });
+
+      return totw ? teamOfTheWeekToDto(totw) : null;
+    }),
+
+  upsertTeamOfTheWeek: protectedProcedure
+    .input(
+      z.object({
+        weekLabel: z.string().trim().optional().default(""),
+        defenderOneId: z.number().int().min(1).nullish(),
+        defenderTwoId: z.number().int().min(1).nullish(),
+        midfielderId: z.number().int().min(1).nullish(),
+        forwardOneId: z.number().int().min(1).nullish(),
+        forwardTwoId: z.number().int().min(1).nullish(),
+        subOneId: z.number().int().min(1).nullish(),
+        subTwoId: z.number().int().min(1).nullish(),
+        subThreeId: z.number().int().min(1).nullish(),
+        subFourId: z.number().int().min(1).nullish(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const active = await requireActiveCompetition();
+
+      const playerIds = [
+        input.defenderOneId,
+        input.defenderTwoId,
+        input.midfielderId,
+        input.forwardOneId,
+        input.forwardTwoId,
+        input.subOneId,
+        input.subTwoId,
+        input.subThreeId,
+        input.subFourId,
+      ].filter((id): id is number => typeof id === "number");
+
+      if (playerIds.length > 0) {
+        const found = await db
+          .get()
+          .select({ id: playersTable.id, competitionId: playersTable.competitionId })
+          .from(playersTable)
+          .where(inArray(playersTable.id, playerIds));
+
+        if (found.length !== playerIds.length) {
+          throw new Error("One or more selected players could not be found.");
+        }
+
+        if (found.some((player) => player.competitionId !== active.id)) {
+          throw new Error("All selected players must belong to the active competition.");
+        }
+      }
+
+      const values = {
+        competitionId: active.id,
+        weekLabel: input.weekLabel || null,
+        defenderOneId: input.defenderOneId ?? null,
+        defenderTwoId: input.defenderTwoId ?? null,
+        midfielderId: input.midfielderId ?? null,
+        forwardOneId: input.forwardOneId ?? null,
+        forwardTwoId: input.forwardTwoId ?? null,
+        subOneId: input.subOneId ?? null,
+        subTwoId: input.subTwoId ?? null,
+        subThreeId: input.subThreeId ?? null,
+        subFourId: input.subFourId ?? null,
+      };
+
+      const existing = await db.get().query.teamOfTheWeekTable.findFirst({
+        where: eq(teamOfTheWeekTable.competitionId, active.id),
+      });
+
+      if (existing) {
+        await db
+          .get()
+          .update(teamOfTheWeekTable)
+          .set({ ...values, updatedAt: new Date() })
+          .where(eq(teamOfTheWeekTable.id, existing.id));
+      } else {
+        await db.get().insert(teamOfTheWeekTable).values(values);
+      }
 
       return { success: true };
     }),
