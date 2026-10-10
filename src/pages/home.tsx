@@ -1,62 +1,15 @@
 import { useState, useMemo, useEffect } from "react";
 import { trpc } from "../client/trpc";
 import { Link } from "react-router";
-
-interface Match {
-  homeTeam: string;
-  awayTeam: string;
-  startTime: string;
-  homeScore: number | null;
-  awayScore: number | null;
-  date: string;
-}
-
-const TEAM_COLORS = {
-  TeamA: { bg: "bg-red-200", text: "text-red-500" },
-  TeamB: { bg: "bg-blue-200", text: "text-blue-500" },
-  TeamC: { bg: "bg-green-200", text: "text-green-500" },
-  TeamD: { bg: "bg-orange-200", text: "text-orange-500" },
-};
-
-const newsModules = import.meta.glob("../news-content/*.md", {
-  eager: true,
-  query: "?raw",
-  import: "default",
-});
-
-function extractTitleFromMarkdown(content: string): string {
-  //get first # heading
-  const headingMatch = content?.match(/^#\s+(.*)/m);
-  if (headingMatch) return headingMatch[1].trim();
-
-  return "Untitled News";
-}
-
-function extractImageFromMarkdown(content: string): string | null {
-  // Match Markdown image syntax: ![alt](src)
-  const imageMatch = content.match(/!\[.*?\]\((.*?)\)/);
-  if (imageMatch) {
-    const src = imageMatch[1].trim();
-
-    return src;
-  }
-  return null;
-}
-
-const newsItems = Object.entries(newsModules).map(([path, content]) => {
-  const filename = path.split("/").pop()!; // e.g., "thrilling-victory.md"
-  const slug = filename.replace(/\.md$/, ""); // e.g., "thrilling-victory"
-  const title = extractTitleFromMarkdown(content as string);
-  const image = extractImageFromMarkdown(content as string);
-
-  return { slug, path, title, image };
-});
+import { Jersey } from "../components/Jersey";
+import { teamColors } from "../lib/teamColors";
+import { PredictCard } from "../components/PredictCard";
+import { formatKickoff, isFixtureOpen, type FixtureDto } from "../lib/fixtures";
 
 export function HomePage() {
-  const [currentFixtureIndex, setCurrentFixtureIndex] = useState(24);
-  const [matchWeekCount, setMatchWeekCount] = useState(18);
   const [activeTab, setActiveTab] = useState<"team" | "players">("team");
   const [newsItemsToShow, setNewsItemsToShow] = useState(2);
+  const [currentWeekIndex, setCurrentWeekIndex] = useState(0);
 
   const ONE_HOUR = 60 * 60 * 1000;
 
@@ -69,11 +22,19 @@ export function HomePage() {
   const { data: teams = [] } = trpc.getTeams.useQuery(undefined, {
     staleTime: ONE_HOUR,
   });
+  const { data: matches = [] } = trpc.getFixtures.useQuery(undefined, {
+    staleTime: 30 * 1000,
+    refetchOnWindowFocus: true,
+  });
   const { data: players } = trpc.getPlayers.useQuery(undefined, {
     staleTime: ONE_HOUR,
   });
   const { data: activeCompetition } = trpc.getActiveCompetition.useQuery(undefined, {
     staleTime: ONE_HOUR,
+  });
+  const { data: newsItems = [] } = trpc.newsList.useQuery(undefined, {
+    staleTime: 15 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
   });
 
   //pagination
@@ -129,259 +90,94 @@ export function HomePage() {
     setNewsItemsToShow(2);
   };
 
-  const matchFixtures = [
-    {
-      homeTeam: "TeamA",
-      awayTeam: "TeamC",
-      startTime: "7:30am",
-      homeScore: 1,
-      awayScore: 2,
-      date: "21 Sept, 2025",
-    },
-    {
-      homeTeam: "TeamB",
-      awayTeam: "TeamD",
-      startTime: "7:30am",
-      homeScore: 0,
-      awayScore: 1,
-      date: "21 Sept, 2025",
-    },
-    {
-      homeTeam: "TeamA",
-      awayTeam: "TeamB",
-      startTime: "7:30am",
-      homeScore: 2,
-      awayScore: 1,
-      date: "28 Sept, 2025",
-    },
-    {
-      homeTeam: "TeamC",
-      awayTeam: "TeamD",
-      startTime: "7:30am",
-      homeScore: 0,
-      awayScore: 1,
-      date: "28 Sept, 2025",
-    },
-    {
-      homeTeam: "TeamA",
-      awayTeam: "TeamD",
-      startTime: "7:30am",
-      homeScore: 0,
-      awayScore: 0,
-      date: "5 Oct, 2025",
-    },
-    {
-      homeTeam: "TeamB",
-      awayTeam: "TeamC",
-      startTime: "7:30am",
-      homeScore: 4,
-      awayScore: 1,
-      date: "5 Oct, 2025",
-    },
-    {
-      homeTeam: "TeamC",
-      awayTeam: "TeamA",
-      startTime: "7:30am",
-      homeScore: 1,
-      awayScore: 0,
-      date: "12 Oct, 2025",
-    },
-    {
-      homeTeam: "TeamB",
-      awayTeam: "TeamD",
-      startTime: "7:30am",
-      homeScore: 2,
-      awayScore: 0,
-      date: "12 Oct, 2025",
-    },
-    {
-      homeTeam: "TeamB",
-      awayTeam: "TeamA",
-      startTime: "7:30am",
-      homeScore: 0,
-      awayScore: 0,
-      date: "19 Oct, 2025",
-    },
-    {
-      homeTeam: "TeamD",
-      awayTeam: "TeamC",
-      startTime: "7:30am",
-      homeScore: 1,
-      awayScore: 0,
-      date: "19 Oct, 2025",
-    },
-    {
-      homeTeam: "TeamD",
-      awayTeam: "TeamA",
-      startTime: "7:30am",
-      homeScore: 0,
-      awayScore: 0,
-      date: "26 Oct, 2025",
-    },
-    {
-      homeTeam: "TeamC",
-      awayTeam: "TeamB",
-      startTime: "7:30am",
-      homeScore: 0,
-      awayScore: 0,
-      date: "26 Oct, 2025",
-    },
-    {
-      homeTeam: "TeamC",
-      awayTeam: "TeamA",
-      startTime: "7:30am",
-      homeScore: 0,
-      awayScore: 1,
-      date: "2 Nov, 2025",
-    },
-    {
-      homeTeam: "TeamB",
-      awayTeam: "TeamD",
-      startTime: "7:30am",
-      homeScore: 2,
-      awayScore: 1,
-      date: "2 Nov, 2025",
-    },
-    {
-      homeTeam: "TeamB",
-      awayTeam: "TeamA",
-      startTime: "7:30am",
-      homeScore: 0,
-      awayScore: 0,
-      date: "9 Nov, 2025",
-    },
-    {
-      homeTeam: "TeamD",
-      awayTeam: "TeamC",
-      startTime: "7:30am",
-      homeScore: 1,
-      awayScore: 2,
-      date: "9 Nov, 2025",
-    },
-    {
-      homeTeam: "TeamD",
-      awayTeam: "TeamA",
-      startTime: "7:30am",
-      homeScore: 0,
-      awayScore: 0,
-      date: "16 Nov, 2025",
-    },
-    {
-      homeTeam: "TeamC",
-      awayTeam: "TeamB",
-      startTime: "7:30am",
-      homeScore: 1,
-      awayScore: 1,
-      date: "16 nov, 2025",
-    },
-    {
-      homeTeam: "TeamC",
-      awayTeam: "TeamA",
-      startTime: "7:30am",
-      homeScore: 1,
-      awayScore: 0,
-      date: "23 Nov, 2025",
-    },
-    {
-      homeTeam: "TeamB",
-      awayTeam: "TeamD",
-      startTime: "7:30am",
-      homeScore: 0,
-      awayScore: 2,
-      date: "23 Nov, 2025",
-    },
-    {
-      homeTeam: "TeamB",
-      awayTeam: "TeamA",
-      startTime: "7:30am",
-      homeScore: 0,
-      awayScore: 0,
-      date: "30 Nov, 2025",
-    },
-    {
-      homeTeam: "TeamD",
-      awayTeam: "TeamC",
-      startTime: "7:30am",
-      homeScore: 0,
-      awayScore: 2,
-      date: "30 Nov, 2025",
-    },
-    {
-      homeTeam: "TeamD",
-      awayTeam: "TeamA",
-      startTime: "7:30am",
-      homeScore: 0,
-      awayScore: 0,
-      date: "07 Dec, 2025",
-    },
-    {
-      homeTeam: "TeamC",
-      awayTeam: "TeamB",
-      startTime: "7:30am",
-      homeScore: 1,
-      awayScore: 1,
-      date: "07 Dec, 2025",
-    },
-    {
-      homeTeam: "TeamC",
-      awayTeam: "TeamA",
-      startTime: "7:30am",
-      homeScore: null,
-      awayScore: null,
-      date: "14 Dec, 2025",
-    },
-    {
-      homeTeam: "TeamB",
-      awayTeam: "TeamD",
-      startTime: "7:30am",
-      homeScore: null,
-      awayScore: null,
-      date: "14 Dec, 2025",
-    },
-  ];
+  const weekRounds = useMemo(() => {
+    const byRound = new Map<number, FixtureDto[]>();
+    for (const match of matches) {
+      if (match.round == null) continue;
+      const list = byRound.get(match.round) ?? [];
+      list.push(match);
+      byRound.set(match.round, list);
+    }
+    return [...byRound.entries()]
+      .sort((a, b) => a[0] - b[0])
+      .map(([round, fixtures]) => ({
+        round,
+        matchDate: fixtures[0]?.matchDate ?? "",
+        matches: fixtures,
+      }));
+  }, [matches]);
 
-  const totalWeeks = Math.ceil(matchFixtures.length / 2); // = 3
+  useEffect(() => {
+    if (weekRounds.length === 0) return;
+    const openIndex = weekRounds.findIndex((week) =>
+      week.matches.some((match) => isFixtureOpen(match))
+    );
+    setCurrentWeekIndex(openIndex === -1 ? weekRounds.length - 1 : openIndex);
+  }, [weekRounds]);
 
-  const renderMatch = (match: Match, key: number) => {
-    const homeColor = TEAM_COLORS[match.homeTeam as keyof typeof TEAM_COLORS] || {
-      bg: "bg-gray-500",
-      text: "text-white",
-    };
-    const awayColor = TEAM_COLORS[match.awayTeam as keyof typeof TEAM_COLORS] || {
-      bg: "bg-gray-500",
-      text: "text-white",
-    };
+  const currentWeek = weekRounds[currentWeekIndex];
+  const openThisWeek = currentWeek?.matches.filter((match) => isFixtureOpen(match)) ?? [];
+  const hasOpenMatches = matches.some((match) => isFixtureOpen(match));
 
-    const hasScores = match.homeScore != null && match.awayScore != null;
+  const renderMatch = (fixture: FixtureDto, key: number) => {
+    const homeName = fixture.homeTeam?.teamName ?? `Team ${fixture.homeTeamId ?? "?"}`;
+    const awayName = fixture.awayTeam?.teamName ?? `Team ${fixture.awayTeamId ?? "?"}`;
+    const homePalette = teamColors(fixture.homeTeam?.color);
+    const awayPalette = teamColors(fixture.awayTeam?.color);
+
+    const hasScores = fixture.homeGoals != null && fixture.awayGoals != null;
 
     return (
-      <li key={key} className="w-full flex flex-col justify-center items-center">
-        <p className="flex gap-6 items-center">
+      <li
+        key={key}
+        className="bg-[#f8f0ed] border-2 border-dashed border-[#62381d] rounded-2xl p-5 sm:p-6 flex flex-col items-center gap-4"
+      >
+        <div className="flex items-center justify-between gap-2 sm:gap-10 w-full">
           <Link
-            to={`/teams/${encodeURIComponent(match.homeTeam)}`}
-            className={`block p-6 font-bold cursor-pointer dark:bg-[#ffffd9] bg-[#FFFFB8] shadow-md shadow-accent h-max -rotate-6 hover:rotate-0 relative ${homeColor.text}`}
+            to={`/teams/${encodeURIComponent(homeName.replace(/\s/g, ""))}`}
+            className="flex flex-col items-center gap-2 w-24 sm:w-32 group"
           >
-            <span className="bg-[brown] block absolute -top-2 left-7 w-10 h-3"></span>
-            {match.homeTeam}
-          </Link>
-
-          {hasScores ? (
-            <span className="text-xl font-bold block text-nowrap">
-              {match.homeScore} - {match.awayScore}
+            <Jersey
+              primary={homePalette.primary}
+              secondary={homePalette.secondary}
+              badge={homeName.slice(-1)}
+              className="w-20 sm:w-24 drop-shadow-md transition-transform group-hover:-rotate-2 group-hover:scale-105"
+            />
+            <span className="text-[10px] font-bold uppercase tracking-wide bg-[#62381d]/10 text-[#62381d] rounded-full px-2 py-0.5">
+              Home
             </span>
-          ) : (
-            <span className="text-xl">Vs</span>
-          )}
+            <p className="font-bold text-sm sm:text-base text-center leading-tight">{homeName}</p>
+          </Link>
+
+          <div className="text-center">
+            {hasScores ? (
+              <p className="text-2xl sm:text-3xl font-black text-[#62381d]">
+                {fixture.homeGoals} - {fixture.awayGoals}
+              </p>
+            ) : (
+              <p className="text-2xl sm:text-3xl font-black text-[#62381d]/60">VS</p>
+            )}
+            <p className="text-xs font-semibold text-[#62381d]/70 mt-1">
+              {formatKickoff(fixture)}
+            </p>
+          </div>
 
           <Link
-            to={`/teams/${encodeURIComponent(match.awayTeam)}`}
-            className={`block p-6 font-bold cursor-pointer dark:bg-[#ffffd9] bg-[#FFFFB8] shadow-md shadow-accent rotate-6 hover:rotate-0 relative ${awayColor.text}`}
+            to={`/teams/${encodeURIComponent(awayName.replace(/\s/g, ""))}`}
+            className="flex flex-col items-center gap-2 w-24 sm:w-32 group"
           >
-            <span className="bg-[brown] block absolute -top-2 left-7 w-10 h-3"></span>
-            {match.awayTeam}
+            <Jersey
+              primary={awayPalette.primary}
+              secondary={awayPalette.secondary}
+              badge={awayName.slice(-1)}
+              className="w-20 sm:w-24 drop-shadow-md transition-transform group-hover:rotate-2 group-hover:scale-105"
+            />
+            <span className="text-[10px] font-bold uppercase tracking-wide bg-[#62381d]/10 text-[#62381d] rounded-full px-2 py-0.5">
+              Away
+            </span>
+            <p className="font-bold text-sm sm:text-base text-center leading-tight">{awayName}</p>
           </Link>
-        </p>
-        <p>{match.startTime}</p>
+        </div>
       </li>
     );
   };
@@ -421,9 +217,9 @@ export function HomePage() {
                 to={`/news/${item.slug}`}
                 className="flex flex-row gap-4  bg-[#f8f0ed] p-3 hover:bg-[#fac4a3] rounded-lg group "
               >
-                {item.image ? (
+                {item.coverImage ? (
                   <img
-                    src={item.image}
+                    src={item.coverImage}
                     alt=""
                     className="w-16 h-16 object-cover rounded-md"
                     onError={(e) => (e.currentTarget.style.display = "none")}
@@ -437,6 +233,9 @@ export function HomePage() {
                   <h4 className="font-semibold text-black group-hover:text-slate-700">
                     {item.title}
                   </h4>
+                  {item.date && (
+                    <p className="text-sm text-gray-500 mt-0.5">{item.date}</p>
+                  )}
                   <p className="text-sm text-orange-500 mt-1 group-hover:text-orange-700">
                     Read more →
                   </p>
@@ -466,60 +265,91 @@ export function HomePage() {
       </section>
 
       <section className="mt-20 mx-6 md:w-[70vw] md:mx-auto text-black">
-        <h3 className="text-xl font-bold ">Fixtures</h3>
-        <div className="flex justify-center items-center gap-4 mt-6 ">
-          <button
-            className=" p-2 flex w-12 h-12  items-center justify-center font-bold rounded-full cursor-pointer bg-[#fac4a3] border-2 border-dashed border-[brown] text-[brown] hover:font-bold"
-            aria-label="prev-button"
-            onClick={() => {
-              if (currentFixtureIndex === 0) {
-                // Go to last week
-                setCurrentFixtureIndex(matchFixtures.length - 2); // 6 - 2 = 4
-                setMatchWeekCount(totalWeeks); // 3
-              } else {
-                setCurrentFixtureIndex(currentFixtureIndex - 2);
-                setMatchWeekCount(matchWeekCount - 1);
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <h3 className="text-xl font-bold">Fixtures</h3>
+          <div className="flex items-center gap-4">
+            <button
+              className="p-2 flex w-11 h-11 items-center justify-center font-bold rounded-full cursor-pointer bg-[#fac4a3] border-2 border-dashed border-[brown] text-[brown] hover:font-bold disabled:opacity-40 disabled:cursor-not-allowed"
+              aria-label="previous fixture week"
+              disabled={weekRounds.length === 0}
+              onClick={() =>
+                setCurrentWeekIndex(
+                  currentWeekIndex === 0 ? weekRounds.length - 1 : currentWeekIndex - 1
+                )
               }
-            }}
-          >
-            ←
-          </button>
-          <div>
-            <p>Match week {matchWeekCount}</p>
+            >
+              ←
+            </button>
+            <p className="font-semibold">
+              {weekRounds.length > 0
+                ? `Match week ${currentWeek?.round ?? "-"}`
+                : "No fixtures yet"}
+            </p>
+            <button
+              aria-label="next fixture week"
+              className="p-2 flex w-11 h-11 items-center justify-center font-bold rounded-full cursor-pointer bg-[#fac4a3] border-2 border-dashed border-[brown] text-[brown] hover:font-bold disabled:opacity-40 disabled:cursor-not-allowed"
+              disabled={weekRounds.length === 0}
+              onClick={() =>
+                setCurrentWeekIndex(
+                  currentWeekIndex === weekRounds.length - 1 ? 0 : currentWeekIndex + 1
+                )
+              }
+            >
+              →
+            </button>
           </div>
-
-          <button
-            aria-label="next-button"
-            className="p-2 flex w-12 h-12  items-center justify-center font-bold rounded-full cursor-pointer bg-[#fac4a3] border-2 border-dashed border-[brown] text-[brown]  hover:font-bold"
-            onClick={() => {
-              if (currentFixtureIndex >= matchFixtures.length - 2) {
-                // Go to first week
-                setCurrentFixtureIndex(0);
-                setMatchWeekCount(1);
-              } else {
-                setCurrentFixtureIndex(currentFixtureIndex + 2);
-                setMatchWeekCount(matchWeekCount + 1);
-              }
-            }}
-          >
-            →
-          </button>
         </div>
 
-        <div className="text-center my-2 text-lg font-semibold text-black">
-          {matchFixtures[currentFixtureIndex]?.date}
-        </div>
+        <div className="text-center my-5 text-lg font-semibold">{currentWeek?.matchDate}</div>
 
-        <div className="w-full flex ">
-          <ul className="w-full flex flex-col gap-12  bg-[#fac4a3] border-2 border-dashed border-[#62381d] text-black p-6 rounded-xl">
-            {renderMatch(matchFixtures[currentFixtureIndex], currentFixtureIndex)}
-            <li>
-              <span className="w-full h-[.5px] bg-black block my-0"></span>
-            </li>
-            {matchFixtures[currentFixtureIndex + 1] &&
-              renderMatch(matchFixtures[currentFixtureIndex + 1], currentFixtureIndex + 1)}
-          </ul>
-        </div>
+        {currentWeek ? (
+          <>
+            <ul className="grid sm:grid-cols-2 gap-6">
+              {currentWeek.matches.map((match, index) => renderMatch(match, index))}
+            </ul>
+
+            {openThisWeek.length > 0 && (
+              <div className="mt-8">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h4 className="text-lg font-bold">Predict &amp; Win</h4>
+                  <Link to="/predict" className="text-sm underline hover:no-underline">
+                    All predictions →
+                  </Link>
+                </div>
+                <ul className="grid sm:grid-cols-2 gap-6 mt-4">
+                  {openThisWeek.map((match) => (
+                    <li key={match.id}>
+                      <PredictCard match={match} />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {!hasOpenMatches && (
+              <div className="mt-8 bg-[#f8f0ed] border-2 border-dashed border-[#62381d] rounded-2xl px-5 py-6 text-center">
+                <p className="font-bold text-[#62381d]">
+                  🎯 Predict &amp; Win {matches[0]?.prizeLabel ?? ""}
+                </p>
+                <p className="text-sm text-[#62381d]/80 mt-2">
+                  Guess the exact score of a fixture to win the airtime prize. Be the first
+                  eligible player to match the score — new predictions open when the next fixture
+                  is scheduled.
+                </p>
+                <Link
+                  to="/predict"
+                  className="inline-block mt-4 bg-[#62381d] text-[#f8f0ed] font-bold rounded-lg px-4 py-2"
+                >
+                  Go to Predictions
+                </Link>
+              </div>
+            )}
+          </>
+        ) : (
+          <p className="text-center text-[#62381d]/70 py-10">
+            No fixtures scheduled for the active competition yet.
+          </p>
+        )}
       </section>
 
       <section className=" mb-20 mt-20 mx-6 md:w-[70vw] md:mx-auto">

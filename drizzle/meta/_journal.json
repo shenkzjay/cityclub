@@ -15,6 +15,34 @@
       "when": 1791567430873,
       "tag": "0001_competitions",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791587257118,
+      "tag": "0002_add_news_table",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791589446546,
+      "tag": "0003_tough_havok",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791591085591,
+      "tag": "0004_flippant_azazel",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791591971424,
+      "tag": "0005_curvy_moira_mactaggert",
+      "breakpoints": true
     }
   ]
 }

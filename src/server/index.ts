@@ -3,12 +3,14 @@ import { db } from "../db/db.js";
 import {
   competitionsTable,
   matchTable,
+  newsTable,
   playersTable,
+  predictionEntriesTable,
   teamsTable,
   pointsTable,
   usersTable,
 } from "../db/schema.js";
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, ne } from "drizzle-orm";
 import z from "zod";
 import {
   compareHashedPassword,
@@ -28,6 +30,14 @@ async function findActiveCompetition() {
   );
 }
 
+async function requireActiveCompetition() {
+  const active = await findActiveCompetition();
+  if (!active) {
+    throw new Error("No active competition.");
+  }
+  return active;
+}
+
 async function resolveCompetitionId(competitionId?: number) {
   if (competitionId) {
     return competitionId;
@@ -35,6 +45,198 @@ async function resolveCompetitionId(competitionId?: number) {
 
   const active = await findActiveCompetition();
   return active?.id ?? null;
+}
+
+function slugify(value: string): string {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function excerptFromMarkdown(content: string, maxLength = 140): string {
+  const text = content
+    .replace(/^\s*([#>-]|!\[.*?\]\(.*?\)|---).*$/gm, "")
+    .replace(/[*_`~]/g, "")
+    .replace(/\[|\]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!text) return "";
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, maxLength).trimEnd()}…`;
+}
+
+const DEFAULT_PRIZE_LABEL = "₦2,000 airtime";
+
+function normalizeName(value: string): string {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+function formatMatchDate(iso: string): string {
+  const parsed = new Date(iso);
+  if (Number.isNaN(parsed.getTime())) {
+    return iso;
+  }
+  return parsed.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+// Applies (dir = 1) or reverses (dir = -1) the standings contribution of a
+// single result. Additive, so re-recording a corrected score is idempotent.
+async function applyMatchPoints(
+  competitionId: number,
+  homeTeamId: number,
+  awayTeamId: number,
+  homeGoals: number,
+  awayGoals: number,
+  dir: 1 | -1
+) {
+  const [homeStats, awayStats] = await Promise.all([
+    db
+      .get()
+      .query.pointsTable.findFirst({
+        where: and(eq(pointsTable.teamId, homeTeamId), eq(pointsTable.competitionId, competitionId)),
+      }),
+    db
+      .get()
+      .query.pointsTable.findFirst({
+        where: and(eq(pointsTable.teamId, awayTeamId), eq(pointsTable.competitionId, competitionId)),
+      }),
+  ]);
+
+  if (!homeStats || !awayStats) {
+    throw new Error("Stats not found for one of the teams");
+  }
+
+  const homeIsWin = homeGoals > awayGoals;
+  const homeIsDraw = homeGoals === awayGoals;
+
+  const updatedHome = {
+    gamesPlayed: homeStats.gamesPlayed + dir,
+    goalsFor: homeStats.goalsFor + dir * homeGoals,
+    goalsAgainst: homeStats.goalsAgainst + dir * awayGoals,
+    goalDifference: homeStats.goalDifference + dir * (homeGoals - awayGoals),
+    gamesWon: homeStats.gamesWon + dir * (homeIsWin ? 1 : 0),
+    gamesDrawn: homeStats.gamesDrawn + dir * (homeIsDraw ? 1 : 0),
+    gamesLost: homeStats.gamesLost + dir * (!homeIsWin && !homeIsDraw ? 1 : 0),
+    points: homeStats.points + dir * (homeIsWin ? 3 : homeIsDraw ? 1 : 0),
+  };
+
+  const awayIsWin = awayGoals > homeGoals;
+  const awayIsDraw = homeGoals === awayGoals;
+
+  const updatedAway = {
+    gamesPlayed: awayStats.gamesPlayed + dir,
+    goalsFor: awayStats.goalsFor + dir * awayGoals,
+    goalsAgainst: awayStats.goalsAgainst + dir * homeGoals,
+    goalDifference: awayStats.goalDifference + dir * (awayGoals - homeGoals),
+    gamesWon: awayStats.gamesWon + dir * (awayIsWin ? 1 : 0),
+    gamesDrawn: awayStats.gamesDrawn + dir * (awayIsDraw ? 1 : 0),
+    gamesLost: awayStats.gamesLost + dir * (!awayIsWin && !awayIsDraw ? 1 : 0),
+    points: awayStats.points + dir * (awayIsWin ? 3 : awayIsDraw ? 1 : 0),
+  };
+
+  await Promise.all([
+    db
+      .get()
+      .update(pointsTable)
+      .set(updatedHome)
+      .where(and(eq(pointsTable.teamId, homeTeamId), eq(pointsTable.competitionId, competitionId))),
+    db
+      .get()
+      .update(pointsTable)
+      .set(updatedAway)
+      .where(and(eq(pointsTable.teamId, awayTeamId), eq(pointsTable.competitionId, competitionId))),
+  ]);
+}
+
+// Serialises a match row (with joined teams) for the client.
+function matchToDto(match: {
+  id: number;
+  round: number | null;
+  kickoffAt: Date | string | null;
+  status: string;
+  prizeLabel: string;
+  matchDate: string;
+  homeGoals: number | null;
+  awayGoals: number | null;
+  competitionId: number | null;
+  homeTeamId: number | null;
+  awayTeamId: number | null;
+  homeTeam?: { id: number; teamName: string; color: string } | null;
+  awayTeam?: { id: number; teamName: string; color: string } | null;
+}) {
+  return {
+    id: match.id,
+    round: match.round,
+    kickoffAt: match.kickoffAt ? new Date(match.kickoffAt).toISOString() : null,
+    status: match.status,
+    prizeLabel: match.prizeLabel,
+    matchDate: match.matchDate,
+    homeGoals: match.homeGoals,
+    awayGoals: match.awayGoals,
+    competitionId: match.competitionId,
+    homeTeamId: match.homeTeamId,
+    awayTeamId: match.awayTeamId,
+    homeTeam: match.homeTeam ?? null,
+    awayTeam: match.awayTeam ?? null,
+  };
+}
+
+// Marks every entry as lost, then awards the earliest eligible exact-score
+// guess. Idempotent: safe to re-run after a score correction.
+async function settleMatch(matchId: number) {
+  const match = await db.get().query.matchTable.findFirst({
+    where: eq(matchTable.id, matchId),
+  });
+
+  if (!match) {
+    throw new Error("Fixture not found.");
+  }
+
+  if (match.status !== "final" || match.homeGoals == null || match.awayGoals == null) {
+    throw new Error("This fixture has no final score to settle against.");
+  }
+
+  const entries = await db.get().query.predictionEntriesTable.findMany({
+    where: eq(predictionEntriesTable.matchId, matchId),
+  });
+
+  if (entries.length === 0) {
+    return { winnerId: null as number | null };
+  }
+
+  const exact = entries
+    .filter(
+      (entry) =>
+        entry.eligible &&
+        entry.guessedHomeGoals === match.homeGoals &&
+        entry.guessedAwayGoals === match.awayGoals
+    )
+    .sort((a, b) => a.submittedAt.getTime() - b.submittedAt.getTime());
+
+  const winner = exact[0] ?? null;
+
+  await db
+    .get()
+    .update(predictionEntriesTable)
+    .set({ status: "lost" })
+    .where(eq(predictionEntriesTable.matchId, matchId));
+
+  if (winner) {
+    await db
+      .get()
+      .update(predictionEntriesTable)
+      .set({ status: "won" })
+      .where(eq(predictionEntriesTable.id, winner.id));
+  }
+
+  return { winnerId: winner?.id ?? null };
 }
 
 export const appRouter = router({
@@ -141,6 +343,134 @@ export const appRouter = router({
 
     return { message: "Logged out" };
   }),
+
+  // ---- news ---------------------------------------------------------------
+
+  newsList: publicProcedure.query(async () => {
+    const items = await db
+      .get()
+      .select({
+        id: newsTable.id,
+        slug: newsTable.slug,
+        title: newsTable.title,
+        date: newsTable.date,
+        coverImage: newsTable.coverImage,
+        content: newsTable.content,
+        createdAt: newsTable.createdAt,
+      })
+      .from(newsTable)
+      .orderBy(desc(newsTable.createdAt));
+
+    return items.map(({ content, ...item }) => ({
+      ...item,
+      excerpt: excerptFromMarkdown(content),
+    }));
+  }),
+
+  getNews: publicProcedure
+    .input(z.object({ slug: z.string().trim().min(1) }))
+    .query(async ({ input }) => {
+      return (
+        (await db.get().query.newsTable.findFirst({
+          where: eq(newsTable.slug, input.slug),
+        })) ?? null
+      );
+    }),
+
+  newsCreate: protectedProcedure
+    .input(
+      z.object({
+        title: z.string().min(1).trim(),
+        date: z.string().min(1).trim(),
+        coverImage: z.string().trim().optional().default(""),
+        content: z.string().min(1),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const slug = slugify(input.title);
+
+      if (!slug) {
+        throw new Error("Title must contain letters or numbers.");
+      }
+
+      const existing = await db.get().query.newsTable.findFirst({
+        where: eq(newsTable.slug, slug),
+      });
+
+      if (existing) {
+        throw new Error("An article with this title already exists.");
+      }
+
+      const [article] = await db
+        .get()
+        .insert(newsTable)
+        .values({
+          slug,
+          title: input.title,
+          date: input.date,
+          coverImage: input.coverImage || null,
+          content: input.content,
+        })
+        .returning();
+
+      return article;
+    }),
+
+  newsUpdate: protectedProcedure
+    .input(
+      z.object({
+        id: z.number().int().min(1),
+        title: z.string().min(1).trim(),
+        date: z.string().min(1).trim(),
+        coverImage: z.string().trim().optional().default(""),
+        content: z.string().min(1),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const existing = await db.get().query.newsTable.findFirst({
+        where: eq(newsTable.id, input.id),
+      });
+
+      if (!existing) {
+        throw new Error("News article not found.");
+      }
+
+      const slug = slugify(input.title);
+
+      if (!slug) {
+        throw new Error("Title must contain letters or numbers.");
+      }
+
+      const clash = await db.get().query.newsTable.findFirst({
+        where: and(eq(newsTable.slug, slug), ne(newsTable.id, input.id)),
+      });
+
+      if (clash) {
+        throw new Error("Another article already uses this title.");
+      }
+
+      const [updated] = await db
+        .get()
+        .update(newsTable)
+        .set({
+          slug,
+          title: input.title,
+          date: input.date,
+          coverImage: input.coverImage || null,
+          content: input.content,
+        })
+        .where(eq(newsTable.id, input.id))
+        .returning();
+
+      return updated;
+    }),
+
+  newsDelete: protectedProcedure
+    .input(z.object({ id: z.number().int().min(1) }))
+    .mutation(async ({ input }) => {
+      await db.get().delete(newsTable).where(eq(newsTable.id, input.id));
+      return { success: true };
+    }),
 
   // ---- competitions -------------------------------------------------------
 
@@ -444,105 +774,413 @@ export const appRouter = router({
       return teams;
     }),
 
-  recordMatchScores: protectedProcedure
+  // ---- fixtures -----------------------------------------------------------
+
+  getFixtures: publicProcedure.query(async () => {
+    const active = await findActiveCompetition();
+
+    if (!active) {
+      return [];
+    }
+
+    const matches = await db.get().query.matchTable.findMany({
+      where: eq(matchTable.competitionId, active.id),
+      orderBy: [asc(matchTable.round), asc(matchTable.kickoffAt), asc(matchTable.id)],
+      with: {
+        homeTeam: { columns: { id: true, teamName: true, color: true } },
+        awayTeam: { columns: { id: true, teamName: true, color: true } },
+      },
+    });
+
+    return matches.map(matchToDto);
+  }),
+
+  fixtureCreate: protectedProcedure
     .input(
       z.object({
-        homeTeamId: z.number(),
-        awayTeamId: z.number(),
-        homeGoals: z.number().min(0),
-        awayGoals: z.number().min(0),
-        matchDate: z.string().min(1),
+        homeTeamId: z.number().int().min(1),
+        awayTeamId: z.number().int().min(1),
+        round: z.number().int().min(1),
+        kickoffAt: z.string().trim().min(1),
+        prizeLabel: z.string().trim().optional().default(DEFAULT_PRIZE_LABEL),
       })
     )
     .mutation(async ({ input }) => {
-      const { homeTeamId, awayTeamId, homeGoals, awayGoals, matchDate } = input;
+      const active = await requireActiveCompetition();
 
-      const active = await findActiveCompetition();
-
-      if (!active) {
-        throw new Error("No active competition.");
+      if (input.homeTeamId === input.awayTeamId) {
+        throw new Error("Home and away teams cannot be the same.");
       }
 
       const [homeTeam, awayTeam] = await Promise.all([
-        db.get().query.teamsTable.findFirst({ where: eq(teamsTable.id, homeTeamId) }),
-        db.get().query.teamsTable.findFirst({ where: eq(teamsTable.id, awayTeamId) }),
+        db.get().query.teamsTable.findFirst({ where: eq(teamsTable.id, input.homeTeamId) }),
+        db.get().query.teamsTable.findFirst({ where: eq(teamsTable.id, input.awayTeamId) }),
       ]);
+
       if (!homeTeam || !awayTeam) {
-        throw new Error("Team not found");
+        throw new Error("Team not found.");
       }
 
       if (homeTeam.competitionId !== active.id || awayTeam.competitionId !== active.id) {
         throw new Error("Both teams must belong to the active competition.");
       }
 
-      //record the match
-      await db.get().insert(matchTable).values({
-        homeTeamId,
-        awayTeamId,
-        homeGoals,
-        awayGoals,
-        matchDate,
-        competitionId: active.id,
-      });
-
-      const [homeStats, awayStats] = await Promise.all([
-        db
-          .get()
-          .query.pointsTable.findFirst({
-            where: and(eq(pointsTable.teamId, homeTeamId), eq(pointsTable.competitionId, active.id)),
-          }),
-        db
-          .get()
-          .query.pointsTable.findFirst({
-            where: and(eq(pointsTable.teamId, awayTeamId), eq(pointsTable.competitionId, active.id)),
-          }),
-      ]);
-
-      if (!homeStats || !awayStats) {
-        throw new Error("Stats not found for one of the teams");
+      const kickoff = new Date(input.kickoffAt);
+      if (Number.isNaN(kickoff.getTime())) {
+        throw new Error("A valid kickoff date and time is required.");
       }
 
-      const homeIsWin = homeGoals > awayGoals;
-      const homeIsDraw = homeGoals === awayGoals;
+      const [fixture] = await db
+        .get()
+        .insert(matchTable)
+        .values({
+          homeTeamId: input.homeTeamId,
+          awayTeamId: input.awayTeamId,
+          round: input.round,
+          kickoffAt: kickoff,
+          matchDate: formatMatchDate(kickoff.toISOString()),
+          prizeLabel: input.prizeLabel || DEFAULT_PRIZE_LABEL,
+          status: "scheduled",
+          competitionId: active.id,
+          homeGoals: null,
+          awayGoals: null,
+        })
+        .returning();
 
-      const updatedHome = {
-        gamesPlayed: homeStats.gamesPlayed + 1,
-        goalsFor: homeStats.goalsFor + homeGoals,
-        goalsAgainst: homeStats.goalsAgainst + awayGoals,
-        goalDifference: homeStats.goalsFor + homeGoals - (homeStats.goalsAgainst + awayGoals),
-        gamesWon: homeStats.gamesWon + (homeIsWin ? 1 : 0),
-        gamesDrawn: homeStats.gamesDrawn + (homeIsDraw ? 1 : 0),
-        gamesLost: homeStats.gamesLost + (!homeIsWin && !homeIsDraw ? 1 : 0),
-        points: homeStats.points + (homeIsWin ? 3 : homeIsDraw ? 1 : 0),
+      return matchToDto(fixture);
+    }),
+
+  fixtureUpdate: protectedProcedure
+    .input(
+      z.object({
+        id: z.number().int().min(1),
+        homeTeamId: z.number().int().min(1),
+        awayTeamId: z.number().int().min(1),
+        round: z.number().int().min(1),
+        kickoffAt: z.string().trim().min(1),
+        prizeLabel: z.string().trim().optional().default(DEFAULT_PRIZE_LABEL),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const active = await requireActiveCompetition();
+
+      const fixture = await db.get().query.matchTable.findFirst({
+        where: eq(matchTable.id, input.id),
+      });
+
+      if (!fixture) {
+        throw new Error("Fixture not found.");
+      }
+
+      if (fixture.competitionId !== active.id) {
+        throw new Error("This fixture belongs to an archived competition.");
+      }
+
+      if (fixture.status === "final") {
+        if (fixture.homeTeamId !== input.homeTeamId || fixture.awayTeamId !== input.awayTeamId) {
+          throw new Error("Cannot change the teams after the match has been played.");
+        }
+      }
+
+      const kickoff = new Date(input.kickoffAt);
+      if (Number.isNaN(kickoff.getTime())) {
+        throw new Error("A valid kickoff date and time is required.");
+      }
+
+      const [updated] = await db
+        .get()
+        .update(matchTable)
+        .set({
+          homeTeamId: input.homeTeamId,
+          awayTeamId: input.awayTeamId,
+          round: input.round,
+          kickoffAt: kickoff,
+          matchDate: formatMatchDate(kickoff.toISOString()),
+          prizeLabel: input.prizeLabel || DEFAULT_PRIZE_LABEL,
+        })
+        .where(eq(matchTable.id, input.id))
+        .returning();
+
+      return matchToDto(updated);
+    }),
+
+  fixtureDelete: protectedProcedure
+    .input(z.object({ id: z.number().int().min(1) }))
+    .mutation(async ({ input }) => {
+      const active = await requireActiveCompetition();
+
+      const fixture = await db.get().query.matchTable.findFirst({
+        where: eq(matchTable.id, input.id),
+      });
+
+      if (!fixture) {
+        throw new Error("Fixture not found.");
+      }
+
+      if (fixture.competitionId !== active.id) {
+        throw new Error("This fixture belongs to an archived competition.");
+      }
+
+      if (fixture.status === "final") {
+        throw new Error(
+          "Cannot delete a played fixture - its result is already in the standings. Correct the result on the Scores page instead."
+        );
+      }
+
+      await db.get().delete(matchTable).where(eq(matchTable.id, input.id));
+
+      return { success: true };
+    }),
+
+  // ---- match results ------------------------------------------------------
+
+  recordMatchScores: protectedProcedure
+    .input(
+      z.object({
+        matchId: z.number().int().min(1),
+        homeGoals: z.number().int().min(0),
+        awayGoals: z.number().int().min(0),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const active = await requireActiveCompetition();
+
+      const fixture = await db.get().query.matchTable.findFirst({
+        where: eq(matchTable.id, input.matchId),
+      });
+
+      if (!fixture) {
+        throw new Error("Fixture not found.");
+      }
+
+      if (fixture.competitionId !== active.id) {
+        throw new Error("This fixture belongs to an archived competition.");
+      }
+
+      if (!fixture.homeTeamId || !fixture.awayTeamId) {
+        throw new Error("Fixture teams are not set.");
+      }
+
+      // Rewind a previously recorded result before applying the new one, so
+      // correcting a score stays consistent with the standings. Only reverse
+      // when this fixture's points were actually applied (seeded historical
+      // fixtures carry scores but were never counted toward this competition).
+      if (fixture.pointsRecorded && fixture.homeGoals != null && fixture.awayGoals != null) {
+        await applyMatchPoints(
+          active.id,
+          fixture.homeTeamId,
+          fixture.awayTeamId,
+          fixture.homeGoals,
+          fixture.awayGoals,
+          -1
+        );
+      }
+
+      await applyMatchPoints(
+        active.id,
+        fixture.homeTeamId,
+        fixture.awayTeamId,
+        input.homeGoals,
+        input.awayGoals,
+        1
+      );
+
+      await db
+        .get()
+        .update(matchTable)
+        .set({
+          homeGoals: input.homeGoals,
+          awayGoals: input.awayGoals,
+          status: "final",
+          pointsRecorded: true,
+        })
+        .where(eq(matchTable.id, input.matchId));
+
+      await settleMatch(input.matchId);
+
+      return { fixtureId: fixture.id, status: "final" as const };
+    }),
+
+  // ---- predictions --------------------------------------------------------
+
+  predictionSubmit: publicProcedure
+    .input(
+      z.object({
+        matchId: z.number().int().min(1),
+        playerName: z.string().trim().min(1),
+        homeGoals: z.number().int().min(0).max(50),
+        awayGoals: z.number().int().min(0).max(50),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const active = await findActiveCompetition();
+
+      if (!active) {
+        throw new Error("No active competition.");
+      }
+
+      const match = await db.get().query.matchTable.findFirst({
+        where: eq(matchTable.id, input.matchId),
+      });
+
+      if (!match) {
+        throw new Error("Match not found.");
+      }
+
+      if (match.competitionId !== active.id) {
+        throw new Error("This match belongs to an archived competition.");
+      }
+
+      if (match.status === "final") {
+        throw new Error("This match has already been played.");
+      }
+
+      if (!match.kickoffAt || new Date(match.kickoffAt).getTime() <= Date.now()) {
+        throw new Error("Predictions are closed for this match.");
+      }
+
+      const playerName = normalizeName(input.playerName);
+
+      const participants = await db.get().query.playersTable.findMany({
+        where: eq(playersTable.competitionId, active.id),
+      });
+      const participant =
+        participants.find(
+          (player) => player.playerName.toLowerCase() === playerName.toLowerCase()
+        ) ?? null;
+      const eligible = Boolean(participant);
+
+      const existingEntries = await db.get().query.predictionEntriesTable.findMany({
+        where: eq(predictionEntriesTable.matchId, input.matchId),
+      });
+
+      const alreadySubmitted =
+        existingEntries.some((entry) =>
+          participant ? entry.playerId === participant.id : false
+        ) ||
+        existingEntries.some(
+          (entry) => entry.playerName.toLowerCase() === playerName.toLowerCase()
+        );
+
+      if (alreadySubmitted) {
+        throw new Error("You have already submitted a prediction for this match.");
+      }
+
+      await db.get().insert(predictionEntriesTable).values({
+        matchId: input.matchId,
+        playerId: participant?.id ?? null,
+        playerName,
+        guessedHomeGoals: input.homeGoals,
+        guessedAwayGoals: input.awayGoals,
+        eligible,
+        status: "open",
+      });
+
+      return { success: true, eligible, playerName };
+    }),
+
+  getMatchPredictions: publicProcedure
+    .input(z.object({ matchId: z.number().int().min(1) }))
+    .query(async ({ input }) => {
+      const match = await db.get().query.matchTable.findFirst({
+        where: eq(matchTable.id, input.matchId),
+        with: {
+          homeTeam: { columns: { id: true, teamName: true, color: true } },
+          awayTeam: { columns: { id: true, teamName: true, color: true } },
+        },
+      });
+
+      if (!match) {
+        throw new Error("Match not found.");
+      }
+
+      const entries = await db.get().query.predictionEntriesTable.findMany({
+        where: eq(predictionEntriesTable.matchId, input.matchId),
+        orderBy: [asc(predictionEntriesTable.submittedAt)],
+      });
+
+      return {
+        match: matchToDto(match),
+        entries: entries.map((entry) => ({
+          id: entry.id,
+          playerName: entry.playerName,
+          homeGoals: entry.guessedHomeGoals,
+          awayGoals: entry.guessedAwayGoals,
+          eligible: entry.eligible,
+          status: entry.status,
+          prizeClaimed: entry.prizeClaimed,
+          submittedAt: entry.submittedAt.toISOString(),
+        })),
+        winner: entries.find((entry) => entry.status === "won") ?? null,
       };
+    }),
 
-      const awayIsWin = awayGoals > homeGoals;
-      const awayIsDraw = homeGoals === awayGoals;
+  settleMatch: protectedProcedure
+    .input(z.object({ matchId: z.number().int().min(1) }))
+    .mutation(async ({ input }) => {
+      return settleMatch(input.matchId);
+    }),
 
-      const updatedAway = {
-        gamesPlayed: awayStats.gamesPlayed + 1,
-        goalsFor: awayStats.goalsFor + awayGoals,
-        goalsAgainst: awayStats.goalsAgainst + homeGoals,
-        goalDifference: awayStats.goalsFor + awayGoals - (awayStats.goalsAgainst + homeGoals),
-        gamesWon: awayStats.gamesWon + (awayIsWin ? 1 : 0),
-        gamesDrawn: awayStats.gamesDrawn + (awayIsDraw ? 1 : 0),
-        gamesLost: awayStats.gamesLost + (!awayIsWin && !awayIsDraw ? 1 : 0),
-        points: awayStats.points + (awayIsWin ? 3 : awayIsDraw ? 1 : 0),
+  matchPredictionsList: protectedProcedure
+    .input(z.object({ matchId: z.number().int().min(1) }))
+    .query(async ({ input }) => {
+      const match = await db.get().query.matchTable.findFirst({
+        where: eq(matchTable.id, input.matchId),
+        with: {
+          homeTeam: { columns: { id: true, teamName: true, color: true } },
+          awayTeam: { columns: { id: true, teamName: true, color: true } },
+        },
+      });
+
+      if (!match) {
+        throw new Error("Match not found.");
+      }
+
+      const entries = await db.get().query.predictionEntriesTable.findMany({
+        where: eq(predictionEntriesTable.matchId, input.matchId),
+        orderBy: [asc(predictionEntriesTable.submittedAt)],
+      });
+
+      return {
+        match: matchToDto(match),
+        entries: entries.map((entry) => ({
+          id: entry.id,
+          matchId: entry.matchId,
+          playerId: entry.playerId,
+          playerName: entry.playerName,
+          guessedHomeGoals: entry.guessedHomeGoals,
+          guessedAwayGoals: entry.guessedAwayGoals,
+          eligible: entry.eligible,
+          status: entry.status,
+          prizeClaimed: entry.prizeClaimed,
+          submittedAt: entry.submittedAt.toISOString(),
+          createdAt: entry.createdAt.toISOString(),
+        })),
       };
+    }),
 
-      // 4. Persist updates
-      await Promise.all([
-        db
-          .get()
-          .update(pointsTable)
-          .set(updatedHome)
-          .where(and(eq(pointsTable.teamId, homeTeamId), eq(pointsTable.competitionId, active.id))),
-        db
-          .get()
-          .update(pointsTable)
-          .set(updatedAway)
-          .where(and(eq(pointsTable.teamId, awayTeamId), eq(pointsTable.competitionId, active.id))),
-      ]);
+  setPrizeClaimed: protectedProcedure
+    .input(z.object({ entryId: z.number().int().min(1), prizeClaimed: z.boolean() }))
+    .mutation(async ({ input }) => {
+      const entry = await db.get().query.predictionEntriesTable.findFirst({
+        where: eq(predictionEntriesTable.id, input.entryId),
+      });
+
+      if (!entry) {
+        throw new Error("Prediction not found.");
+      }
+
+      if (entry.status !== "won") {
+        throw new Error("Only the winning prediction can be marked as claimed.");
+      }
+
+      await db
+        .get()
+        .update(predictionEntriesTable)
+        .set({ prizeClaimed: input.prizeClaimed })
+        .where(eq(predictionEntriesTable.id, input.entryId));
+
+      return { success: true };
     }),
 });
 

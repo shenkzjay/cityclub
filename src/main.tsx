@@ -15,6 +15,10 @@ import AdminSignIn from "./admin/sign-in/index.tsx";
 import { TRPCProvider } from "./provider.tsx";
 import SignUp from "./admin/signup/index.tsx";
 import CompetitionsAdmin from "./admin/competitions/index.tsx";
+import NewsAdmin from "./admin/news/index.tsx";
+import FixturesAdmin from "./admin/fixtures/index.tsx";
+import PredictionsAdmin from "./admin/predictions/index.tsx";
+import PredictPage from "./pages/predict-page.tsx";
 import { RequireAdmin } from "./admin/require-admin.tsx";
 
 const root = document.getElementById("root")!;
@@ -38,6 +42,10 @@ ReactDOM.createRoot(root).render(
         <Route path="/admin/players/create-players" element={<CreatePlayersComponent />} />
         <Route path="/admin/points/points-update" element={<PointsUpdate />} />
         <Route path="/admin/competitions" element={<CompetitionsAdmin />} />
+        <Route path="/admin/news" element={<NewsAdmin />} />
+        <Route path="/admin/fixtures" element={<FixturesAdmin />} />
+        <Route path="/admin/predictions" element={<PredictionsAdmin />} />
+        <Route path="/predict" element={<PredictPage />} />
         <Route path="/news/:slug" element={<NewsPage />} />
         <Route path="/teams/:teamName" element={<TeamPage />} />
         <Route path="/history" element={<HistoryPage />} />

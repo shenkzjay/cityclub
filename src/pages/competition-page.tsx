@@ -46,6 +46,14 @@ export default function CompetitionPage() {
     return map;
   }, [competition?.teams]);
 
+  const results = useMemo(
+    () =>
+      (competition?.matches ?? []).filter(
+        (match) => match.homeGoals != null && match.awayGoals != null
+      ),
+    [competition?.matches]
+  );
+
   const sortPlayersByStats = (players: typeof sortedPlayers) => {
     return [...players].sort((a, b) => {
       if (b.goals !== a.goals) return b.goals - a.goals;
@@ -274,8 +282,8 @@ export default function CompetitionPage() {
       {/* Results */}
       <h2 className="text-xl font-bold mb-4">Results</h2>
       <ul className="grid gap-2">
-        {competition.matches.length > 0 ? (
-          competition.matches.map((match) => (
+        {results.length > 0 ? (
+          results.map((match) => (
             <li
               key={match.id}
               className="bg-[#f8f0ed] text-[brown] font-bold rounded-lg px-4 py-3 flex flex-row items-center justify-between gap-4 text-sm"

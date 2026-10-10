@@ -1,0 +1,983 @@
+{
+  "id": "763e0d0a-0e46-4959-a3c4-216ba3e530a7",
+  "prevId": "201dfee0-9419-43d0-9023-3149e7460fd5",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.competitions_table": {
+      "name": "competitions_table",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'active'"
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.match_table": {
+      "name": "match_table",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "homeTeamId": {
+          "name": "homeTeamId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "awayTeamId": {
+          "name": "awayTeamId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "homeGoals": {
+          "name": "homeGoals",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "awayGoals": {
+          "name": "awayGoals",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "matchDate": {
+          "name": "matchDate",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "competitionId": {
+          "name": "competitionId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "round": {
+          "name": "round",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kickoffAt": {
+          "name": "kickoffAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'scheduled'"
+        },
+        "prizeLabel": {
+          "name": "prizeLabel",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'₦2,000 airtime'"
+        },
+        "pointsRecorded": {
+          "name": "pointsRecorded",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "match_table_homeTeamId_teams_table_id_fk": {
+          "name": "match_table_homeTeamId_teams_table_id_fk",
+          "tableFrom": "match_table",
+          "tableTo": "teams_table",
+          "columnsFrom": [
+            "homeTeamId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "match_table_awayTeamId_teams_table_id_fk": {
+          "name": "match_table_awayTeamId_teams_table_id_fk",
+          "tableFrom": "match_table",
+          "tableTo": "teams_table",
+          "columnsFrom": [
+            "awayTeamId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "match_table_competitionId_competitions_table_id_fk": {
+          "name": "match_table_competitionId_competitions_table_id_fk",
+          "tableFrom": "match_table",
+          "tableTo": "competitions_table",
+          "columnsFrom": [
+            "competitionId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.news_table": {
+      "name": "news_table",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "slug": {
+          "name": "slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date": {
+          "name": "date",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "coverImage": {
+          "name": "coverImage",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "content": {
+          "name": "content",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "news_slug_idx": {
+          "name": "news_slug_idx",
+          "columns": [
+            {
+              "expression": "slug",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "news_table_slug_unique": {
+          "name": "news_table_slug_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "slug"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.players_table": {
+      "name": "players_table",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "playerName": {
+          "name": "playerName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "goals": {
+          "name": "goals",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "assists": {
+          "name": "assists",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "yellowCard": {
+          "name": "yellowCard",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "redCard": {
+          "name": "redCard",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "teamId": {
+          "name": "teamId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "competitionId": {
+          "name": "competitionId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "players_table_teamId_teams_table_id_fk": {
+          "name": "players_table_teamId_teams_table_id_fk",
+          "tableFrom": "players_table",
+          "tableTo": "teams_table",
+          "columnsFrom": [
+            "teamId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "players_table_competitionId_competitions_table_id_fk": {
+          "name": "players_table_competitionId_competitions_table_id_fk",
+          "tableFrom": "players_table",
+          "tableTo": "competitions_table",
+          "columnsFrom": [
+            "competitionId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "unique_player_name_per_competition": {
+          "name": "unique_player_name_per_competition",
+          "nullsNotDistinct": false,
+          "columns": [
+            "playerName",
+            "competitionId"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.points_table": {
+      "name": "points_table",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "gamesPlayed": {
+          "name": "gamesPlayed",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "gamesPoint": {
+          "name": "gamesPoint",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "goalFor": {
+          "name": "goalFor",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "goalAgainst": {
+          "name": "goalAgainst",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "goalDifference": {
+          "name": "goalDifference",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "gamesWon": {
+          "name": "gamesWon",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "gamesLost": {
+          "name": "gamesLost",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "gamesDrawn": {
+          "name": "gamesDrawn",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "points": {
+          "name": "points",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "teamId": {
+          "name": "teamId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "competitionId": {
+          "name": "competitionId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "points_table_teamId_teams_table_id_fk": {
+          "name": "points_table_teamId_teams_table_id_fk",
+          "tableFrom": "points_table",
+          "tableTo": "teams_table",
+          "columnsFrom": [
+            "teamId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "points_table_competitionId_competitions_table_id_fk": {
+          "name": "points_table_competitionId_competitions_table_id_fk",
+          "tableFrom": "points_table",
+          "tableTo": "competitions_table",
+          "columnsFrom": [
+            "competitionId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "unique_team_points_per_competition": {
+          "name": "unique_team_points_per_competition",
+          "nullsNotDistinct": false,
+          "columns": [
+            "teamId",
+            "competitionId"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.prediction_entries_table": {
+      "name": "prediction_entries_table",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "matchId": {
+          "name": "matchId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "playerId": {
+          "name": "playerId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "playerName": {
+          "name": "playerName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "guessedHomeGoals": {
+          "name": "guessedHomeGoals",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "guessedAwayGoals": {
+          "name": "guessedAwayGoals",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "eligible": {
+          "name": "eligible",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'open'"
+        },
+        "prizeClaimed": {
+          "name": "prizeClaimed",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "submittedAt": {
+          "name": "submittedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "prediction_entries_table_matchId_match_table_id_fk": {
+          "name": "prediction_entries_table_matchId_match_table_id_fk",
+          "tableFrom": "prediction_entries_table",
+          "tableTo": "match_table",
+          "columnsFrom": [
+            "matchId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "prediction_entries_table_playerId_players_table_id_fk": {
+          "name": "prediction_entries_table_playerId_players_table_id_fk",
+          "tableFrom": "prediction_entries_table",
+          "tableTo": "players_table",
+          "columnsFrom": [
+            "playerId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "unique_prediction_per_participant_per_match": {
+          "name": "unique_prediction_per_participant_per_match",
+          "nullsNotDistinct": false,
+          "columns": [
+            "matchId",
+            "playerId"
+          ]
+        },
+        "unique_prediction_per_name_per_match": {
+          "name": "unique_prediction_per_name_per_match",
+          "nullsNotDistinct": false,
+          "columns": [
+            "matchId",
+            "playerName"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.team_of_the_week_table": {
+      "name": "team_of_the_week_table",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "competitionId": {
+          "name": "competitionId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "weekLabel": {
+          "name": "weekLabel",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "defenderOneId": {
+          "name": "defenderOneId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "defenderTwoId": {
+          "name": "defenderTwoId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "midfielderId": {
+          "name": "midfielderId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "forwardOneId": {
+          "name": "forwardOneId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "forwardTwoId": {
+          "name": "forwardTwoId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "subOneId": {
+          "name": "subOneId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "subTwoId": {
+          "name": "subTwoId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "subThreeId": {
+          "name": "subThreeId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "subFourId": {
+          "name": "subFourId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "team_of_the_week_table_competitionId_competitions_table_id_fk": {
+          "name": "team_of_the_week_table_competitionId_competitions_table_id_fk",
+          "tableFrom": "team_of_the_week_table",
+          "tableTo": "competitions_table",
+          "columnsFrom": [
+            "competitionId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "team_of_the_week_table_defenderOneId_players_table_id_fk": {
+          "name": "team_of_the_week_table_defenderOneId_players_table_id_fk",
+          "tableFrom": "team_of_the_week_table",
+          "tableTo": "players_table",
+          "columnsFrom": [
+            "defenderOneId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "team_of_the_week_table_defenderTwoId_players_table_id_fk": {
+          "name": "team_of_the_week_table_defenderTwoId_players_table_id_fk",
+          "tableFrom": "team_of_the_week_table",
+          "tableTo": "players_table",
+          "columnsFrom": [
+            "defenderTwoId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "team_of_the_week_table_midfielderId_players_table_id_fk": {
+          "name": "team_of_the_week_table_midfielderId_players_table_id_fk",
+          "tableFrom": "team_of_the_week_table",
+          "tableTo": "players_table",
+          "columnsFrom": [
+            "midfielderId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "team_of_the_week_table_forwardOneId_players_table_id_fk": {
+          "name": "team_of_the_week_table_forwardOneId_players_table_id_fk",
+          "tableFrom": "team_of_the_week_table",
+          "tableTo": "players_table",
+          "columnsFrom": [
+            "forwardOneId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "team_of_the_week_table_forwardTwoId_players_table_id_fk": {
+          "name": "team_of_the_week_table_forwardTwoId_players_table_id_fk",
+          "tableFrom": "team_of_the_week_table",
+          "tableTo": "players_table",
+          "columnsFrom": [
+            "forwardTwoId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "team_of_the_week_table_subOneId_players_table_id_fk": {
+          "name": "team_of_the_week_table_subOneId_players_table_id_fk",
+          "tableFrom": "team_of_the_week_table",
+          "tableTo": "players_table",
+          "columnsFrom": [
+            "subOneId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "team_of_the_week_table_subTwoId_players_table_id_fk": {
+          "name": "team_of_the_week_table_subTwoId_players_table_id_fk",
+          "tableFrom": "team_of_the_week_table",
+          "tableTo": "players_table",
+          "columnsFrom": [
+            "subTwoId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "team_of_the_week_table_subThreeId_players_table_id_fk": {
+          "name": "team_of_the_week_table_subThreeId_players_table_id_fk",
+          "tableFrom": "team_of_the_week_table",
+          "tableTo": "players_table",
+          "columnsFrom": [
+            "subThreeId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "team_of_the_week_table_subFourId_players_table_id_fk": {
+          "name": "team_of_the_week_table_subFourId_players_table_id_fk",
+          "tableFrom": "team_of_the_week_table",
+          "tableTo": "players_table",
+          "columnsFrom": [
+            "subFourId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "unique_totw_per_competition": {
+          "name": "unique_totw_per_competition",
+          "nullsNotDistinct": false,
+          "columns": [
+            "competitionId"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.teams_table": {
+      "name": "teams_table",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "teamName": {
+          "name": "teamName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "color": {
+          "name": "color",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "competitionId": {
+          "name": "competitionId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "teams_table_competitionId_competitions_table_id_fk": {
+          "name": "teams_table_competitionId_competitions_table_id_fk",
+          "tableFrom": "teams_table",
+          "tableTo": "competitions_table",
+          "columnsFrom": [
+            "competitionId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "unique_team_name_per_competition": {
+          "name": "unique_team_name_per_competition",
+          "nullsNotDistinct": false,
+          "columns": [
+            "teamName",
+            "competitionId"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.users_table": {
+      "name": "users_table",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "username": {
+          "name": "username",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "password": {
+          "name": "password",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "email_idx": {
+          "name": "email_idx",
+          "columns": [
+            {
+              "expression": "email",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "users_table_email_unique": {
+          "name": "users_table_email_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
