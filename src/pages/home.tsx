@@ -104,7 +104,15 @@ export function HomePage() {
   //sort teams
   const sortedTeams = useMemo(() => {
     return [...teams].sort((a, b) => {
-      return (b.score?.points ?? 0) - (a.score?.points ?? 0);
+      if (b.score.points !== a.score.points) {
+        return (b.score?.points ?? 0) - (a.score?.points ?? 0);
+      }
+
+      if (b.score.goalDifference !== a.score.goalDifference) {
+        return b.score?.goalDifference - a.score?.goalDifference;
+      }
+
+      return b.score?.gamesWon - a.score?.gamesWon;
     });
   }, [teams]);
 
